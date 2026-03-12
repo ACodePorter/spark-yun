@@ -13,6 +13,8 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.FileSystemResourceLoader;
@@ -311,28 +313,101 @@ public class SshUtils {
         session.setTimeout(30000);
         session.connect();
 
-        // 上传文件
-        ChannelSftp channel;
-        channel = (ChannelSftp) session.openChannel("sftp");
-        channel.connect(120000);
-        FileSystemResourceLoader resourceLoader = new FileSystemResourceLoader();
-        channel.put(Files.newInputStream(Paths.get(srcPath)), dstPath);
+        // 计算本地文件MD5
+        String localMd5 = getLocalFileMd5(srcPath);
 
-        // 文件校验
-        SftpATTRS attrs;
-        while (true) {
-            attrs = channel.stat(dstPath);
-            if (attrs != null) {
-                long remoteFileSize = attrs.getSize();
-                long localFileSize = Files.size(Paths.get(srcPath));
-                if (remoteFileSize == localFileSize) {
-                    break;
-                }
+        // 通过exec通道获取远程文件MD5
+        boolean needUpload = true;
+        try {
+            String remoteMd5 = getRemoteFileMd5(session, dstPath);
+            if (remoteMd5 != null && remoteMd5.equals(localMd5)) {
+                log.debug("远程文件已存在且MD5一致，跳过上传: {}", dstPath);
+                needUpload = false;
             }
-            Thread.sleep(2000);
+        } catch (Exception e) {
+            log.debug("获取远程文件MD5失败，需要上传: {}", dstPath);
         }
 
-        channel.disconnect();
+        if (needUpload) {
+            // 上传文件
+            ChannelSftp channel;
+            channel = (ChannelSftp) session.openChannel("sftp");
+            channel.connect(120000);
+            long localFileSize = Files.size(Paths.get(srcPath));
+            channel.put(Files.newInputStream(Paths.get(srcPath)), dstPath);
+
+            // 文件校验
+            SftpATTRS attrs;
+            while (true) {
+                attrs = channel.stat(dstPath);
+                if (attrs != null) {
+                    long remoteFileSize = attrs.getSize();
+                    if (remoteFileSize == localFileSize) {
+                        break;
+                    }
+                }
+                Thread.sleep(2000);
+            }
+            channel.disconnect();
+        }
+
         session.disconnect();
+    }
+
+    /**
+     * 计算本地文件MD5.
+     */
+    private static String getLocalFileMd5(String filePath) throws IOException {
+        try {
+            MessageDigest md = MessageDigest.getInstance("MD5");
+            byte[] fileBytes = Files.readAllBytes(Paths.get(filePath));
+            byte[] digest = md.digest(fileBytes);
+            StringBuilder sb = new StringBuilder();
+            for (byte b : digest) {
+                sb.append(String.format("%02x", b));
+            }
+            return sb.toString();
+        } catch (NoSuchAlgorithmException e) {
+            throw new IOException("MD5算法不可用", e);
+        }
+    }
+
+    /**
+     * 获取远程文件MD5.
+     */
+    private static String getRemoteFileMd5(Session session, String remoteFilePath)
+        throws JSchException, IOException, InterruptedException {
+
+        ChannelExec channel = (ChannelExec) session.openChannel("exec");
+        channel.setCommand("md5sum " + remoteFilePath);
+        channel.setInputStream(null);
+
+        InputStream in = channel.getInputStream();
+        channel.connect();
+
+        BufferedReader reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
+        String line;
+        StringBuilder output = new StringBuilder();
+        while ((line = reader.readLine()) != null) {
+            output.append(line);
+        }
+
+        while (!channel.isClosed()) {
+            Thread.sleep(500);
+        }
+
+        int exitStatus = channel.getExitStatus();
+        channel.disconnect();
+
+        if (exitStatus != 0 || output.length() == 0) {
+            return null;
+        }
+
+        // md5sum输出格式: "md5hash filename"
+        String result = output.toString().trim();
+        if (result.contains(" ")) {
+            return result.split("\\s+")[0];
+        }
+        return null;
     }
 }
