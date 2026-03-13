@@ -1,5 +1,7 @@
 package com.isxcode.spark.modules.datasource.source;
 
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.TypeReference;
 import com.isxcode.spark.api.datasource.constants.ColumnType;
 import com.isxcode.spark.api.datasource.constants.DatasourceType;
 import com.isxcode.spark.api.datasource.dto.*;
@@ -31,6 +33,7 @@ import java.net.URLClassLoader;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -142,9 +145,22 @@ public abstract class Datasource {
 
         // 配置账号密码
         Properties properties = new Properties();
+
+        // 高级配置
+        if (connectInfo.getConnectConfig() != null && !connectInfo.getConnectConfig().isEmpty()) {
+            Map<String, String> configMap =
+                JSON.parseObject(connectInfo.getConnectConfig(), new TypeReference<Map<String, String>>() {});
+            if (configMap != null) {
+                properties.putAll(configMap);
+            }
+        }
+
+        // 账号填写
         if (connectInfo.getUsername() != null) {
             properties.put("user", connectInfo.getUsername());
         }
+
+        // 密码填写
         if (connectInfo.getPasswd() != null) {
             properties.put("password", aesUtils.decrypt(connectInfo.getPasswd()));
         }
