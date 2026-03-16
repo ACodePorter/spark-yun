@@ -60,7 +60,7 @@
 | 任务调度 | 调度历史                     |
 | 基线告警 | 消息体、基线配置、告警实例            |
 | 元数据  | 数据地图、数据采集、采集实例、数据血缘      |
-| 数据服务 | 数据卡片、数据大屏、接口服务、分享表单      |
+| 数据服务 | 数据卡片、数据大屏、接口服务、分享表单、黑白名单 |
 | 后台管理 | 用户中心、租户列表、租户成员、免密登录、证书安装 |
 
 ### 立即体验
@@ -93,9 +93,8 @@ cd /tmp
 git clone https://github.com/isxcode/spark-yun.git
 docker run --rm \
   -v /tmp/spark-yun:/spark-yun \
-  -w /spark-yun \
-  -it registry.cn-shanghai.aliyuncs.com/isxcode/zhiqingyun-build:latest-amd \
-  /bin/bash -c "source /etc/profile && gradle package"
+  -it registry.cn-shanghai.aliyuncs.com/isxcode/zhiqingyun-build:latest-amd64 \
+  gradle package
 ```
 
 ### 产品展示

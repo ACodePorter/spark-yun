@@ -18,38 +18,53 @@
         />
       </el-form-item>
       <el-form-item
-        label="Host"
         prop="host"
       >
+        <template #label>
+          <div class="host-label">
+            <span>Host</span>
+            <el-popover
+              :visible="showPortEdit"
+              placement="top"
+              :width="200"
+              :teleported="false"
+            >
+              <div class="port-popover">
+                <el-input
+                  v-model="formData.port"
+                  maxlength="5"
+                  size="small"
+                  placeholder="请输入端口号"
+                />
+                <div class="port-popover__footer">
+                  <el-button size="small" @click="showPortEdit = false">取消</el-button>
+                  <el-button size="small" type="primary" @click="showPortEdit = false">确定</el-button>
+                </div>
+              </div>
+              <template #reference>
+                <span class="port-btn" @click="showPortEdit = !showPortEdit">端口号</span>
+              </template>
+            </el-popover>
+          </div>
+        </template>
         <el-input
           v-model="formData.host"
           placeholder="请输入"
         />
       </el-form-item>
-      <el-form-item
-        label="端口号"
-        prop="port"
-      >
-        <el-input
-          v-model="formData.port"
-          maxlength="5"
-          placeholder="请输入端口号"
-        />
-      </el-form-item>
       <el-form-item label="用户名" prop="username">
         <el-input v-model="formData.username" maxlength="100" placeholder="请输入" />
       </el-form-item>
-      <el-form-item label="验证类型">
-        <el-radio-group v-model="pwdType" @change="pwdTypeChangeEvent">
-          <el-radio :label="'pwd'">密码</el-radio>
-          <el-radio :label="'ssh'">令牌</el-radio>
-        </el-radio-group>
-      </el-form-item>
-      <el-form-item v-if="pwdType === 'pwd'" label="密码">
-        <el-input v-model="formData.passwd" type="password" show-password placeholder="请输入" />
-      </el-form-item>
-      <el-form-item v-else label="令牌">
+      <el-form-item>
+        <template #label>
+          <div class="host-label">
+            <span>{{ pwdType === 'pwd' ? '密码' : '令牌' }}</span>
+            <span class="port-btn" @click="togglePwdType">切换认证</span>
+          </div>
+        </template>
+        <el-input v-if="pwdType === 'pwd'" v-model="formData.passwd" type="password" show-password placeholder="请输入" />
         <el-input
+          v-else
           v-model="formData.passwd"
           show-word-limit
           type="textarea"
@@ -57,11 +72,17 @@
           placeholder="请输入"
         />
       </el-form-item>
-      <el-form-item v-if="clusterType === 'standalone'" label="安装Spark">
-        <el-switch v-model="formData.installSparkLocal" />
-      </el-form-item>
-      <el-form-item v-if="clusterType === 'standalone'" label="安装Flink">
-        <el-switch v-model="formData.installFlinkLocal" />
+      <el-form-item v-if="clusterType === 'standalone'" label="安装服务">
+        <div class="install-service-row">
+          <div class="install-service-item">
+            <span>Spark</span>
+            <el-switch v-model="formData.installSparkLocal" />
+          </div>
+          <div class="install-service-item">
+            <span>Flink</span>
+            <el-switch v-model="formData.installFlinkLocal" />
+          </div>
+        </div>
       </el-form-item>
       <el-form-item label="备注">
         <el-input
@@ -109,6 +130,7 @@ const form = ref<FormInstance>()
 const callback = ref<any>()
 const pwdType = ref('pwd')
 const clusterType = ref('')
+const showPortEdit = ref(false)
 const testLoading = ref(false)
 const testResult = ref()
 const modelConfig = reactive({
@@ -180,6 +202,7 @@ const rules = reactive<FormRules>({
 function showModal(cb: () => void, data: any): void {
   callback.value = cb
   pwdType.value = 'pwd'
+  showPortEdit.value = false
   clusterType.value = route.query.type
 
   testResult.value = {
@@ -242,7 +265,8 @@ function testFun() {
   }
 }
 
-function pwdTypeChangeEvent() {
+function togglePwdType() {
+  pwdType.value = pwdType.value === 'pwd' ? 'ssh' : 'pwd'
   formData.passwd = ''
 }
 
@@ -259,6 +283,7 @@ function okEvent() {
         .then((res: any) => {
           modelConfig.okConfig.loading = false
           if (res === undefined) {
+            showPortEdit.value = false
             modelConfig.visible = false
           } else {
             modelConfig.visible = true
@@ -274,6 +299,7 @@ function okEvent() {
 }
 
 function closeEvent() {
+  showPortEdit.value = false
   modelConfig.visible = false
 }
 
@@ -286,6 +312,45 @@ defineExpose({
 .add-computer-group {
   padding: 12px 20px 0 20px;
   box-sizing: border-box;
+  .el-form-item__label {
+    width: 100%;
+  }
+  .host-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    .port-btn {
+      color: getCssVar('color', 'primary');
+      cursor: pointer;
+      font-size: 12px;
+      &:hover {
+        opacity: 0.8;
+      }
+    }
+  }
+  .port-popover {
+    .port-popover__footer {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 8px;
+    }
+  }
+  .install-service-row {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    width: 100%;
+    .install-service-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      span {
+        font-size: 13px;
+        color: var(--el-text-color-regular);
+      }
+    }
+  }
 }
 .compute-add-modal {
   .test-button {
