@@ -36,7 +36,7 @@ let container: HTMLElement | undefined;
 const runningStatus = ref(false)
 const hideGridStatus = ref(false)
 
-const emit = defineEmits(['refresh'])
+const emit = defineEmits(['refresh', 'nodeDropped'])
 
 function initGraph() {
     Graph.registerNode(
@@ -44,7 +44,7 @@ function initGraph() {
         {
             inherit: 'vue-shape',
             width: 180,
-            height: 76,
+            height: 36,
             component: {
                 render: ()=>{
                    return createVNode(CustomNode);
@@ -171,14 +171,33 @@ function initGraph() {
             targetAnchor: 'top',
             allowNode: false,
             allowEdge: false,
-            validateMagnet({ magnet }) {
-                // if (!hideGridStatus.value) {
-                //     return false
-                // } else {
-                //     return magnet.getAttribute('port-group') !== 'top'
-                // }
-                return magnet.getAttribute('port-group') !== 'top'
-
+            validateMagnet({ magnet, cell }) {
+                // 只能从底部端口开始连线
+                if (magnet.getAttribute('port-group') !== 'bottom') {
+                    return false
+                }
+                // 数据输出节点不能连线指向其他节点
+                const sourceData = cell.getData()
+                if (sourceData?.nodeConfigData?.type === 'DATA_OUTPUT') {
+                    return false
+                }
+                return true
+            },
+            validateConnection({ targetCell }) {
+                // 数据输入节点不能被其他节点连线指向
+                const targetData = targetCell?.getData()
+                if (targetData?.nodeConfigData?.type === 'DATA_INPUT') {
+                    return false
+                }
+                // 数据过滤/数据转换/新增字段节点只能被一个节点指向
+                const singleInputTypes = ['DATA_FILTER', 'DATA_TRANSFORM', 'DATA_ADD_COL', 'DATA_OUTPUT']
+                if (singleInputTypes.includes(targetData?.nodeConfigData?.type)) {
+                    const incomingEdges = _Graph.getIncomingEdges(targetCell)
+                    if (incomingEdges && incomingEdges.length >= 1) {
+                        return false
+                    }
+                }
+                return true
             },
             createEdge() {
                 return _Graph.createEdge({
@@ -209,7 +228,12 @@ function initGraph() {
         target: _Graph,
         getDragNode: (node: any) => node.clone({ keepId: true }),
         getDropNode: (node: any) => node.clone({ keepId: true }),
-        validateNode() {
+        validateNode(droppingNode: any) {
+            // 节点真正放到画布后，通知父组件
+            nextTick(() => {
+                const data = droppingNode.getData()
+                emit('nodeDropped', data.nodeConfigData)
+            })
             return true
         }
     })
@@ -218,11 +242,8 @@ function initGraph() {
             node.addTools({
                 name: 'button-remove',
                 args: {
-                    x: 144,  // 160最右边
-                    y: 33,
-                    // x: 170,
-                    // y: 0,
-                    // offset: { x: 15, y: 5 },
+                    x: 175,
+                    y: -5,
                     offset: { x: 10, y: 10 },
                 }
             })
@@ -371,9 +392,18 @@ onMounted(() => {
     initGraph()
 })
 
+// 删除指定节点
+function removeNodeById(nodeId: string) {
+    const node = _Graph.getCellById(nodeId)
+    if (node) {
+        _Graph.removeCell(node)
+    }
+}
+
 defineExpose({
     addNodeFn,
     updateNodeFn,
+    removeNodeById,
     getAllCellData,
     initCellList,
     updateFlowStatus,

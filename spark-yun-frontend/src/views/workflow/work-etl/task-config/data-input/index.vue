@@ -1,6 +1,6 @@
 <template>
     <div class="config-components">
-        <el-form-item label="数据源类型" prop="inputEtl.dbType" :rules="rules.dbType">
+        <el-form-item label="类型" prop="inputEtl.dbType" :rules="rules.dbType">
             <el-select
                 v-model="formData.inputEtl.dbType"
                 filterable
@@ -33,7 +33,7 @@
                 />
             </el-select>
         </el-form-item>
-        <el-form-item label="表" prop="inputEtl.tableName" :rules="rules.tableName">
+        <el-form-item label="表" prop="inputEtl.tableName" :rules="rules.tableName" class="table-select-row">
             <el-select
                 v-model="formData.inputEtl.tableName"
                 filterable
@@ -49,6 +49,7 @@
                     :value="item.value"
                 />
             </el-select>
+            <el-button type="primary" link @click="showTableDetail">数据预览</el-button>
         </el-form-item>
         <el-form-item label="分区键" prop="inputEtl.partitionColumn" :rules="rules.partitionColumn">
             <el-select
@@ -74,13 +75,9 @@
                 controls-position="right"
             />
         </el-form-item>
-        <el-form-item>
-            <el-button type="primary" @click="showTableDetail">数据预览</el-button>
-            <el-button type="primary" @click="getTableColumn">刷新结构</el-button>
-        </el-form-item>
         <!-- 数据预览 -->
         <table-detail ref="tableDetailRef"></table-detail>
-        <div style="max-height: 444px;">
+        <div v-show="false" style="max-height: 444px;">
             <BlockTable
               :table-config="tableConfig"
             >
@@ -238,7 +235,8 @@ function getTableColumn() {
             return {
                 colName: column.name,
                 colType: column.type,
-                remark: column.columnComment
+                remark: column.columnComment,
+                checked: true
             }
         })
         formData.value.outColumnList = [...tableConfig.tableData]
@@ -290,6 +288,22 @@ onMounted(() => {
     .el-form-item {
         .el-form-item__content {
             justify-content: flex-end;
+        }
+        &.table-select-row {
+            .el-form-item__content {
+                display: flex;
+                flex-wrap: nowrap;
+                align-items: center;
+                justify-content: flex-start;
+                .el-select {
+                    flex: 1;
+                    min-width: 0;
+                }
+                .el-button {
+                    flex-shrink: 0;
+                    margin-left: 8px;
+                }
+            }
         }
     }
     .btn-group {

@@ -1,11 +1,6 @@
 <template>
     <div class="config-components">
-        <el-form-item class="form-item-top" label="字段配置">
-            <span class="add-btn">
-                <el-icon @click="addNewOption">
-                    <CirclePlus />
-                </el-icon>
-            </span>
+        <el-form-item class="form-item-top" label-width="0">
             <div class="form-options__list">
                 <div class="form-options__item" v-for="(element, index) in formData.transformEtl">
                     <el-form-item :prop="`transformEtl[${index}].colName`" :rules="rules.colName">
@@ -71,6 +66,12 @@
                         </el-icon>
                     </div>
                 </div>
+            </div>
+            <div class="transform-condition-actions">
+                <el-button link type="primary" size="small" @click="addNewOption">
+                    <el-icon><Plus /></el-icon>
+                    转换
+                </el-button>
             </div>
         </el-form-item>
     </div>
@@ -160,19 +161,25 @@ function getFunctionList() {
 
 onMounted(() => {
     if (props.incomeNodes && props.incomeNodes[0]) {
-        colNameOptions.value = props.incomeNodes[0].data.nodeConfigData.outColumnList.map((column) => {
+        colNameOptions.value = props.incomeNodes[0].data.nodeConfigData.outColumnList.filter((item: any) => item.checked !== false).map((column) => {
             return {
                 label: column.colName,
                 value: column.colName
             }
         })
-        formData.value.outColumnList = props.incomeNodes[0].data.nodeConfigData.outColumnList.map((column) => {
-            return {
-                colName: column.colName,
-                colType: column.colType,
-                remark: column.remark
-            }
-        })
+        if (!formData.value.outColumnList || !formData.value.outColumnList.length) {
+            const fromAliaCode = props.incomeNodes[0].data.nodeConfigData.aliaCode || ''
+            formData.value.outColumnList = props.incomeNodes[0].data.nodeConfigData.outColumnList.filter((item: any) => item.checked !== false).map((column) => {
+                return {
+                    colName: column.colName,
+                    colType: column.colType,
+                    fromAliaCode: fromAliaCode,
+                    fromColName: column.colName,
+                    remark: column.remark,
+                    checked: true
+                }
+            })
+        }
         formData.value.inputEtl = props.incomeNodes[0].data.nodeConfigData.inputEtl
     }
 
@@ -191,14 +198,9 @@ onMounted(() => {
         &.form-item-top {
             display: flex;
             flex-direction: column;
-            .el-form-item__content {
-                .add-btn {
-                    position: absolute;
-                    top: -22px;
-                    right: 0;
-                    color: getCssVar('color', 'primary');
-                    cursor: pointer;
-                }
+            .transform-condition-actions {
+                width: 100%;
+                padding: 4px 0 8px;
             }
             .form-options__list {
                 width: 100%;

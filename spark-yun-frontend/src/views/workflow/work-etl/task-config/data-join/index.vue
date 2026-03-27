@@ -9,10 +9,10 @@
                 @change="tableChangeEvent($event, formData.joinEtl, tableNameList)"
             >
                 <el-option
-                    v-for="item in tableNameList"
-                    :key="item.value"
-                    :label="item.label"
-                    :value="item.value"
+                    v-for="opt in tableNameList"
+                    :key="opt.value"
+                    :label="opt.label"
+                    :value="opt.value"
                 />
             </el-select>
         </el-form-item>
@@ -24,42 +24,37 @@
                 </el-icon>
             </span>
         </div>
-        <div class="form-options__list" v-for="(item, i) in formData.joinEtl">
-            <el-icon v-if="formData.joinEtl.length > 1" class="remove-btn" @click="removeItem(index)">
+        <div class="form-options__list" v-for="(joinItem, i) in formData.joinEtl" :style="getGroupStyle(i)">
+            <el-icon v-if="formData.joinEtl.length > 1" class="remove-block-btn" @click="removeItem(i)">
                 <CircleClose />
             </el-icon>
-            <el-form-item :prop="`joinEtl[${i}].joinWay`" :rules="rules.joinWay" class="form-item-top" label="关联">
-                <el-select v-model="formData.joinEtl[i].joinWay" placeholder="请选择">
-                    <el-option label="左连接" value="LEFT_JOIN"/>
-                    <el-option label="右连接" value="RIGHT_JOIN"/>
-                    <el-option label="内连接" value="INNER_JOIN"/>
-                    <el-option label="外连接" value="OUTER_JOIN"/>
-                </el-select>
-            </el-form-item>
+            <div class="join-header-row">
+                <el-form-item :prop="`joinEtl[${i}].joinWay`" :rules="rules.joinWay" label="关联" class="join-way-item">
+                    <el-select v-model="formData.joinEtl[i].joinWay" placeholder="请选择">
+                        <el-option label="左连接" value="LEFT_JOIN"/>
+                        <el-option label="右连接" value="RIGHT_JOIN"/>
+                        <el-option label="内连接" value="INNER_JOIN"/>
+                        <el-option label="外连接" value="OUTER_JOIN"/>
+                    </el-select>
+                </el-form-item>
+                <el-form-item :prop="`joinEtl[${i}].joinAliaCode`" :rules="rules.joinAliaCode" class="join-table-item">
+                    <el-select
+                        v-model="formData.joinEtl[i].joinAliaCode"
+                        clearable
+                        placeholder="输入表"
+                    >
+                        <el-option
+                            v-for="opt in tableNameList"
+                            :key="opt.value"
+                            :label="opt.label"
+                            :value="opt.value"
+                        />
+                    </el-select>
+                </el-form-item>
+            </div>
             <el-form-item class="form-item-top" label="条件">
-                <span class="add-btn">
-                    <el-icon @click="addNewCondition(formData.joinEtl[i].joinConditions)">
-                        <CirclePlus />
-                    </el-icon>
-                </span>
                 <div class="form-options-ul__list" v-if="formData.joinEtl[i].joinConditions && formData.joinEtl[i].joinConditions.length">
                     <div class="form-options__item" v-for="(element, index) in formData.joinEtl[i].joinConditions">
-                        <el-form-item :prop="`joinEtl[${i}].joinConditions[${index}].joinAliaCode`" :rules="rules.joinAliaCode">
-                            <el-select
-                                v-model="element.joinAliaCode"
-                                filterable
-                                clearable
-                                placeholder="输入表"
-                            >
-                                <el-option
-                                    v-for="item in tableNameList"
-                                    :disabled="formData.mainAliaCode === item.value"
-                                    :key="item.value"
-                                    :label="item.label"
-                                    :value="item.value"
-                                />
-                            </el-select>
-                        </el-form-item>
                         <el-form-item :prop="`joinEtl[${i}].joinConditions[${index}].joinType`" :rules="rules.joinType">
                             <el-select v-model="element.joinType" @change="transformChangeEvent($event, element)">
                                 <el-option label="字段关联" value="COLUMN_JOIN"/>
@@ -91,9 +86,7 @@
                                     clearable
                                     placeholder="条件"
                                 >
-                                    <el-option label="=" value="=" />
-                                    <el-option label="<" value="<" />
-                                    <el-option label=">" value=">" />
+                                    <el-option v-for="opt in joinConditionOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                                 </el-select>
                             </el-form-item>
                             <el-form-item :prop="`joinEtl[${i}].joinConditions[${index}].joinRightColumn`" :rules="rules.joinRightColumn">
@@ -102,7 +95,7 @@
                                     filterable
                                     clearable
                                     placeholder="字段"
-                                    @visible-change="getTableFields($event, element)"
+                                    @visible-change="getTableFields($event, formData.joinEtl[i])"
                                 >
                                     <el-option
                                         v-for="item in tableFields"
@@ -114,16 +107,32 @@
                             </el-form-item>
                         </template>
                         <template v-if="element.joinType === 'CONDITION_JOIN'">
+                            <el-form-item :prop="`joinEtl[${i}].joinConditions[${index}].joinAliaCode`" :rules="rules.joinAliaCode">
+                                <el-select
+                                    v-model="element.joinAliaCode"
+                                    filterable
+                                    clearable
+                                    placeholder="请选择表"
+                                    @change="conditionTableChangeEvent(element)"
+                                >
+                                    <el-option
+                                        v-for="opt in tableNameList"
+                                        :key="opt.value"
+                                        :label="opt.label"
+                                        :value="opt.value"
+                                    />
+                                </el-select>
+                            </el-form-item>
                             <el-form-item :prop="`joinEtl[${i}].joinConditions[${index}].joinColumn`" :rules="rules.joinColumn">
                                 <el-select
                                     v-model="element.joinColumn"
                                     filterable
                                     clearable
                                     placeholder="请选择字段"
-                                    @visible-change="getTableFields($event, element)"
+                                    @visible-change="getConditionTableFields($event, element)"
                                 >
                                     <el-option
-                                        v-for="item in tableFields"
+                                        v-for="item in conditionTableFields"
                                         :key="item.value"
                                         :label="item.label"
                                         :value="item.value"
@@ -137,9 +146,7 @@
                                     clearable
                                     placeholder="条件"
                                 >
-                                    <el-option label="=" value="=" />
-                                    <el-option label="<" value="<" />
-                                    <el-option label=">" value=">" />
+                                    <el-option v-for="opt in joinConditionOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                                 </el-select>
                             </el-form-item>
                             <el-form-item :prop="`joinEtl[${i}].joinConditions[${index}].joinValue`" :rules="rules.joinValue">
@@ -166,9 +173,15 @@
                         </div>
                     </div>
                 </div>
+                <div class="join-condition-actions">
+                    <el-button link type="primary" size="small" @click="addNewCondition(formData.joinEtl[i].joinConditions)">
+                        <el-icon><Plus /></el-icon>
+                        条件
+                    </el-button>
+                </div>
             </el-form-item>
         </div>
-        <div class="table-container" style="height: 314px;">
+        <!-- <div v-show="false" class="table-container" style="height: 314px;">
             <el-form-item>
                 <el-button type="primary" @click="addNewCode">添加</el-button>
             </el-form-item>
@@ -181,9 +194,9 @@
                     </div>
                 </template>
             </BlockTable>
-        </div>
+        </div> -->
         <!-- 添加字段 -->
-        <add-code ref="addCodeRef"></add-code>
+        <!-- <add-code ref="addCodeRef"></add-code> -->
     </div>
 </template>
 
@@ -191,7 +204,9 @@
 import { ref, defineEmits, computed, onMounted, reactive, nextTick } from 'vue'
 import { ElMessage, ElMessageBox, FormInstance, FormRules } from 'element-plus'
 import { TypeList, ConfigRules, TableConfig } from './config.ts'
+import { groupColorPalette } from '../data-filter/config.ts'
 import { GetTableColumnsByTableId } from '@/services/data-sync.service'
+import { GetEtlFilterCondition } from '@/services/etl-config.service'
 import AddCode from './add-code/index.vue'
 
 interface Option {
@@ -208,6 +223,8 @@ const emit = defineEmits(['update:modelValue'])
 
 const mainTableFields = ref<Option[]>()
 const tableFields = ref<Option[]>()
+const conditionTableFields = ref<Option[]>()
+const joinConditionOptions = ref<Option[]>()
 const addCodeRef = ref()
 
 const rules = reactive<FormRules>({
@@ -233,13 +250,24 @@ const formData = computed({
     }
 })
 
+function getGroupStyle(index: number) {
+    const palette = groupColorPalette[index % groupColorPalette.length]
+    return {
+        borderColor: palette.borderOuter,
+        borderLeftColor: palette.border,
+        borderLeftWidth: '3px',
+        borderLeftStyle: 'solid',
+        backgroundColor: palette.background
+    }
+}
+
 const tableNameList = computed(() => {
     if (props.incomeNodes && props.incomeNodes.length) {
         return props.incomeNodes.map((node: any) => {
             const currentNodeData = node.data.nodeConfigData
             return {
-                label: `${currentNodeData.name}-${currentNodeData.inputEtl.tableName}`,
-                value: currentNodeData.inputEtl.tableName,
+                label: currentNodeData.name,
+                value: currentNodeData.aliaCode,
                 data: currentNodeData
             }
         })
@@ -247,6 +275,10 @@ const tableNameList = computed(() => {
         return []
     }
 })
+
+// const inputTableOptions = computed(() => {
+//     return tableNameList.value.filter(opt => opt.value !== formData.value.mainAliaCode)
+// })
 
 function addNewOption() {
     formData.value.joinEtl.push({
@@ -283,6 +315,7 @@ function addNewCondition(list: any[]) {
 
 function tableChangeEvent(e: string, list: any[], optionsList?: any[]) {
     list.forEach((data: any) => {
+        data.joinAliaCode = ''
         if (data.joinConditions && data.joinConditions.length) {
             data.joinConditions.forEach(cc => {
                 cc.joinAliaCode = ''
@@ -298,7 +331,7 @@ function tableChangeEvent(e: string, list: any[], optionsList?: any[]) {
             formData.value.outColumnList = currentItem.data.outColumnList.map(item => {
                 return {
                     colName: item.colName,
-                    fromAliaCode: currentItem.data.name,
+                    fromAliaCode: currentItem.data.aliaCode,
                     fromColName: item.colName,
                     colType: item.colType,
                     remark: item.remark
@@ -334,39 +367,41 @@ function functionSelectEvent(e: string, element: any) {
 
 function getMainTableFields(e: boolean) {
     const currentItem = tableNameList.value.find(dd => dd.value === formData.value.mainAliaCode)
-    if (e && currentItem.data.inputEtl && currentItem.data.inputEtl.datasourceId && currentItem.data.inputEtl.tableName) {
-        GetTableColumnsByTableId({
-            dataSourceId: currentItem.data.inputEtl.datasourceId,
-            tableName: currentItem.data.inputEtl.tableName
-        }).then((res: any) => {
-            mainTableFields.value = (res.data.columns || []).map((column: any) => {
-                return {
-                    label: column.name,
-                    value: column.name
-                }
-            })
-        }).catch(err => {
-            console.error(err)
+    if (e && currentItem.data.outColumnList) {
+        mainTableFields.value = (currentItem.data.outColumnList || []).filter((item: any) => item.checked !== false).map((column: any) => {
+            return {
+                label: column.colName,
+                value: column.colName
+            }
         })
     }
 }
 function getTableFields(e: boolean, config: any) {
     const currentItem = tableNameList.value.find(dd => dd.value === config.joinAliaCode)
-    if (e && currentItem.data.inputEtl && currentItem.data.inputEtl.datasourceId && currentItem.data.inputEtl.tableName) {
-        GetTableColumnsByTableId({
-            dataSourceId: currentItem.data.inputEtl.datasourceId,
-            tableName: currentItem.data.inputEtl.tableName
-        }).then((res: any) => {
-            tableFields.value = (res.data.columns || []).map((column: any) => {
-                return {
-                    label: column.name,
-                    value: column.name
-                }
-            })
-        }).catch(err => {
-            console.error(err)
+    if (e && currentItem && currentItem.data.outColumnList) {
+        tableFields.value = (currentItem.data.outColumnList || []).filter((item: any) => item.checked !== false).map((column: any) => {
+            return {
+                label: column.colName,
+                value: column.colName
+            }
         })
     }
+}
+
+function getConditionTableFields(e: boolean, element: any) {
+    const currentItem = tableNameList.value.find(dd => dd.value === element.joinAliaCode)
+    if (e && currentItem && currentItem.data.outColumnList) {
+        conditionTableFields.value = (currentItem.data.outColumnList || []).filter((item: any) => item.checked !== false).map((column: any) => {
+            return {
+                label: column.colName,
+                value: column.colName
+            }
+        })
+    }
+}
+
+function conditionTableChangeEvent(element: any) {
+    element.joinColumn = ''
 }
 
 function addNewCode() {
@@ -390,6 +425,14 @@ function removeCode(row: any) {
 
 onMounted(() => {
     tableConfig.tableData = formData.value.outColumnList
+    GetEtlFilterCondition().then((res: any) => {
+        joinConditionOptions.value = Object.keys(res.data).map((key: string) => ({
+            label: res.data[key].conditionName,
+            value: key
+        }))
+    }).catch(() => {
+        joinConditionOptions.value = []
+    })
     // if (props.incomeNodes && props.incomeNodes[0]) {
     //     tableConfig.tableData = props.incomeNodes[0].data.nodeConfigData.outColumnList.map((column) => {
     //         return {
@@ -412,7 +455,7 @@ onMounted(() => {
 
 <style lang="scss">
 .config-components {
-    padding:  12px 20px;
+    padding:  0 20px;
     box-sizing: border-box;
     &.data-join {
         .config-label {
@@ -437,24 +480,67 @@ onMounted(() => {
             box-sizing: border-box;
             position: relative;
 
-            .remove-btn {
+            .join-header-row {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                margin-bottom: 0;
+                margin-top: 12px;
+                padding-right: 20px;
+                .join-way-item {
+                    flex-shrink: 0;
+                    margin-bottom: 0;
+                    .el-form-item__label {
+                        width: 64px !important;
+                    }
+                    .el-select {
+                        width: 110px;
+                    }
+                }
+                .join-table-item {
+                    flex: 1;
+                    margin-bottom: 0;
+                    min-width: 0;
+                    .el-form-item__content {
+                        margin-left: -4px !important;
+                    }
+                }
+            }
+
+            .remove-block-btn {
                 position: absolute;
-                right: 12px;
-                top: 4px;
-                color: getCssVar('color', 'primary');
+                right: -8px;
+                top: -8px;
+                font-size: 16px;
+                color: #c0c4cc;
                 cursor: pointer;
+                z-index: 1;
+                background: #fff;
+                border-radius: 50%;
+                transition: color 0.2s;
+
+                &:hover {
+                    color: #f56c6c;
+                }
             }
             .form-options-ul__list {
                 width: 100%;
             }
 
+            .join-condition-actions {
+                width: 100%;
+            }
+
             .form-options__item {
                 display: flex;
-                margin-bottom: 8px;
 
                 .el-form-item {
                     width: 100%;
-                    margin-bottom: 12px;
+                    margin-bottom: 15px;
+                }
+                .el-form-item:first-child {
+                    flex-shrink: 0;
+                    width: 120px;
                 }
                 .el-form-item+.el-form-item {
                     margin-left: 4px;

@@ -1,34 +1,13 @@
 <template>
-    <BlockDrawer :drawer-config="drawerConfig">
+    <BlockModal :model-config="modelConfig">
         <el-scrollbar>
             <el-form
               ref="formRef"
               label-position="left"
-              label-width="120px"
+              label-width="80px"
               :model="formData"
             >
-                <div class="base-container">
-                    <div class="base-title">基础信息</div>
-                    <el-form-item label="名称" prop="name" :rules="rules.name">
-                        <el-input v-model="formData.name" maxlength="100" placeholder="请输入" />
-                    </el-form-item>
-                    <el-form-item label="编码" prop="aliaCode" :rules="rules.aliaCode">
-                        <el-input disabled v-model="formData.aliaCode" />
-                    </el-form-item>
-                    <el-form-item label="备注">
-                        <el-input
-                            v-model="formData.remark"
-                            show-word-limit
-                            type="textarea"
-                            maxlength="200"
-                            :resize="'none'"
-                            :autosize="{ minRows: 4, maxRows: 4 }"
-                            placeholder="请输入"
-                        />
-                    </el-form-item>
-                </div>
                 <div class="main-config-container">
-                    <div class="base-title">节点信息</div>
                     <component
                         ref="instanceRef"
                         :is="currentComponent(formData.type)"
@@ -38,20 +17,30 @@
                 </div>
             </el-form>
         </el-scrollbar>
-    </BlockDrawer>
+        <template #customLeft>
+            <el-button v-if="formData.type !== 'DATA_OUTPUT'" type="primary" @click="showFieldsModal" style="margin-right: auto;">输出字段</el-button>
+            <el-button v-else type="primary" @click="showLinkModal" style="margin-right: auto;">字段映射</el-button>
+        </template>
+    </BlockModal>
+    <OutputModal ref="outputModalRef"></OutputModal>
+    <LinkModal ref="linkModalRef"></LinkModal>
 </template>
 
 <script lang="ts" setup>
 import { computed, nextTick, reactive, ref, shallowRef, markRaw } from 'vue'
 import { ElMessage, FormInstance, FormRules } from 'element-plus'
-import BlockDrawer from '@/components/block-drawer/index.vue'
+import BlockModal from '@/components/block-modal/index.vue'
+import BlockTable from '@/components/block-table/index.vue'
 import { cloneDeep, clone } from 'lodash-es'
+import OutputModal from './output-modal/index.vue'
+import LinkModal from './link-modal/index.vue'
 
 import DataInput from './data-input/index.vue'
 import DataOutput from './data-output/index.vue'
 import DataTransfrom from './data-transform/index.vue'
 import DataJoin from './data-join/index.vue'
 import DataUnion from './data-union/index.vue'
+import DataFilter from './data-filter/index.vue'
 import DataAddCol from './data-add-col/index.vue'
 import DataCustom from './data-custom/index.vue'
 
@@ -61,6 +50,7 @@ const Components = {
     DataTransfrom,
     DataJoin,
     DataUnion,
+    DataFilter,
     DataAddCol,
     DataCustom
 }
@@ -68,13 +58,18 @@ const Components = {
 const formRef = ref<FormInstance>()
 const callback = ref<any>()
 const incomeNodes = ref<any>()
+
 const formData = ref<any>({})
 const instanceRef = ref<any>()
+
+// 字段映射
+const linkModalRef = ref<any>()
+const outputModalRef = ref<any>()
 const formInstance = shallowRef<any>(Components)
-const drawerConfig = reactive({
+const modelConfig = reactive({
     title: '配置详情',
     visible: false,
-    width: '800',
+    width: '60%',
     customClass: 'etl-task-config',
     okConfig: {
         title: '确定',
@@ -102,6 +97,7 @@ const currentComponent = computed(() => {
             DATA_OUTPUT: 'DataOutput',
             DATA_JOIN: 'DataJoin',
             DATA_UNION: 'DataUnion',
+            DATA_FILTER: 'DataFilter',
             DATA_TRANSFORM: 'DataTransfrom',
             DATA_ADD_COL: 'DataAddCol',
             DATA_CUSTOM: 'DataCustom'
@@ -110,13 +106,22 @@ const currentComponent = computed(() => {
     }
 })
 
+function showFieldsModal() {
+    const tableData = formData.value.outColumnList || []
+    outputModalRef.value.showModal(tableData, formData.value.type, incomeNodes.value, formData.value)
+}
+// 字段映射
+function showLinkModal() {
+    linkModalRef.value.showModal(formData.value, incomeNodes.value)
+}
+
 function showModal(prevNode: any, cb: () => void, data: any) {
     callback.value = cb
     incomeNodes.value = prevNode
-    drawerConfig.title = data.typeName
+    modelConfig.title = data.typeName
 
     formData.value = cloneDeep(data)
-    drawerConfig.visible = true;
+    modelConfig.visible = true;
 }
 
 function okEvent() {
@@ -124,14 +129,14 @@ function okEvent() {
     formRef.value?.validate((valid: boolean) => {
         if (valid) {
             callback.value(formData.value).then((res: any) => {
-                drawerConfig.okConfig.loading = false
+                modelConfig.okConfig.loading = false
                 if (res === undefined) {
-                    drawerConfig.visible = false
+                    modelConfig.visible = false
                 } else {
-                    drawerConfig.visible = true
+                    modelConfig.visible = true
                 }
             }).catch((err: any) => {
-                drawerConfig.okConfig.loading = false
+                modelConfig.okConfig.loading = false
             })
         } else {
             ElMessage.warning('请将表单输入完整')
@@ -140,7 +145,7 @@ function okEvent() {
 }
 
 function closeEvent() {
-    drawerConfig.visible = false;
+    modelConfig.visible = false;
 }
 
 defineExpose({
@@ -150,6 +155,10 @@ defineExpose({
 
 <style lang="scss">
 .etl-task-config {
+    .modal-content {
+        padding: 12px 0;
+        box-sizing: border-box;
+    }
     .el-form {
         .base-container {
             padding: 0 20px;

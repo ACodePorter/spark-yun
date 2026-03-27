@@ -1,41 +1,33 @@
 <template>
-    <div class="etl-flow-node" :class="status" @dblclick="dbclickToDetain">
+    <div class="etl-flow-node" :class="status" @mousedown="onMouseDown" @click="onClick">
         <div class="flow-node-container" ref="content">
-            <div class="info-container">
-                <p class="text name">名称：{{ nodeConfigData?.name || '-' }}</p>
-                <p class="text type">类型：{{ nodeConfigData.typeName  }}</p>
-                <p class="text">备注：{{ nodeConfigData.remark || '-' }}</p>
-            </div>
-            <!-- <template v-if="isRunning">
-                <el-icon v-if="status === 'RUNNING'" class="custom-icon is-loading"><Loading /></el-icon>
-                <el-icon v-if="status === 'ABORTING'" class="custom-icon is-loading"><Loading /></el-icon>
-                <el-icon v-if="status === 'PENDING'" class="custom-icon"><Clock /></el-icon>
-                <el-icon v-if="status === 'ABORT'" class="custom-icon"><VideoPause /></el-icon>
-            </template> -->
-
-            <el-icon class="node-option-more" @click="handleCommand('task_config')">
-                <Setting />
-            </el-icon>
-
-            <!-- <el-dropdown trigger="click" @command="handleCommand">
-                <el-icon class="node-option-more">
-                    <MoreFilled />
-                </el-icon>
-                <template #dropdown>
-                    <el-dropdown-menu>
-                        <el-dropdown-item command="task_edit">编辑</el-dropdown-item>
-                        <el-dropdown-item command="task_config">配置节点</el-dropdown-item>
-                    </el-dropdown-menu>
+            <el-tooltip
+                placement="top"
+                :show-after="300"
+            >
+                <template #content>
+                    <div>名称：{{ nodeConfigData?.name || '-' }}</div>
+                    <div>编码：{{ nodeConfigData?.aliaCode || '-' }}</div>
+                    <div>备注：{{ nodeConfigData?.remark || '暂无备注' }}</div>
                 </template>
-            </el-dropdown> -->
+                <div class="info-container">
+                    <el-icon class="node-icon"><component :is="nodeIcon" /></el-icon>
+                    <span class="node-name">{{ nodeConfigData?.name || '-' }}</span>
+                </div>
+            </el-tooltip>
+            <el-icon class="node-edit-icon" @click.stop="handleCommand('task_edit')">
+                <component :is="EditIcon" />
+            </el-icon>
         </div>
     </div>
 </template>
 
 <script lang="ts" setup>
-import { inject, onMounted, ref, computed } from 'vue'
-import { ElIcon, ElDropdown, ElDropdownMenu, ElDropdownItem } from 'element-plus'
-import { MoreFilled, Loading, Clock, VideoPause, Setting } from '@element-plus/icons-vue'
+import { inject, onMounted, ref, computed, markRaw, type Component } from 'vue'
+import { ElIcon } from 'element-plus'
+import { Download, Upload, Link, CopyDocument, Filter, Switch, CirclePlus, SetUp, Document, Edit } from '@element-plus/icons-vue'
+
+const EditIcon = markRaw(Edit)
 import { RunAfterFlowData } from '@/services/workflow.service';
 import eventBus from '@/utils/eventBus'
 
@@ -49,7 +41,36 @@ const isRunning = ref(false)
 const showMenu = ref(false)
 const nodeConfigData = ref({})
 
+const nodeIconMap: Record<string, Component> = {
+    DATA_INPUT: markRaw(Download),
+    DATA_OUTPUT: markRaw(Upload),
+    DATA_JOIN: markRaw(Link),
+    DATA_UNION: markRaw(CopyDocument),
+    DATA_FILTER: markRaw(Filter),
+    DATA_TRANSFORM: markRaw(Switch),
+    DATA_ADD_COL: markRaw(CirclePlus),
+    DATA_CUSTOM: markRaw(SetUp),
+}
+
+const nodeIcon = computed(() => {
+    return nodeIconMap[nodeConfigData.value?.type] || markRaw(Document)
+})
+
 let Node
+const mouseDownPos = ref({ x: 0, y: 0 })
+
+function onMouseDown(e: MouseEvent) {
+    mouseDownPos.value = { x: e.clientX, y: e.clientY }
+}
+
+function onClick(e: MouseEvent) {
+    const dx = Math.abs(e.clientX - mouseDownPos.value.x)
+    const dy = Math.abs(e.clientY - mouseDownPos.value.y)
+    // 移动距离小于5px视为点击，否则视为拖拽
+    if (dx < 5 && dy < 5) {
+        handleCommand('task_config')
+    }
+}
 
 function handleCommand(command: string) {
     eventBus.emit('taskFlowEvent', {
@@ -79,9 +100,10 @@ onMounted(() => {
     height: 100%;
     background-color: #fff;
     border: 1px solid #c2c8d5;
-    border-left: 4px solid #5F95FF;
+    border-left: 4px solid getCssVar('color', 'primary');
     border-radius: 4px;
     box-shadow: 0 2px 5px 1px rgba(0, 0, 0, 0.06);
+    cursor: pointer;
 
     .flow-node-container {
         display: flex;
@@ -91,23 +113,39 @@ onMounted(() => {
         height: 100%;
         align-items: center;
 
-        .node-option-more {
-            font-size: 14px;
-            transform: rotate(90deg);
-            cursor: pointer;
-            color: getCssVar('color', 'info');
-        }
-        .custom-icon {
-            color: #9599a2;
-        }
-
         .info-container {
             display: flex;
-            flex-direction: column;
-            justify-content: space-around;
+            align-items: center;
+            gap: 6px;
             height: 100%;
-            padding: 4px 0;
+            padding: 0 8px;
             box-sizing: border-box;
+            overflow: hidden;
+
+            .node-icon {
+                font-size: 16px;
+                flex-shrink: 0;
+                color: getCssVar('color', 'primary');
+            }
+
+            .node-name {
+                font-size: 12px;
+                max-width: 110px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+        }
+
+        .node-edit-icon {
+            font-size: 12px;
+            flex-shrink: 0;
+            color: getCssVar('color', 'info');
+            cursor: pointer;
+
+            &:hover {
+                color: getCssVar('color', 'primary');
+            }
         }
     }
 }

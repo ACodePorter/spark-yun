@@ -10,6 +10,7 @@
                 <ZEtlFlow
                     ref="zEtlFlowRef"
                     @refresh="initFlowData"
+                    @nodeDropped="handleNodeDropped"
                 ></ZEtlFlow>
             </div>
         </LoadingPage>
@@ -144,16 +145,40 @@ function handleDragEnd(e: any, item: any) {
     if (!runningStatus.value) {
         nextTick(() => {
             item.id = guid()
-            item.aliaCode = item.id
+            const nodeId = String(Math.floor(Math.random() * 1000000)).padStart(6, '0')
+            item.aliaCode = 'node_' + nodeId
             const newItem = {
-                name: item.typeName,
+                name: item.typeName + '_' + nodeId,
                 inputEtl: null,
                 ...item,
                 ...cloneDeep(TaskParams[item.type]),
             }
+            // 执行拖拽动画，节点落到画布上后由 nodeDropped 事件触发弹窗
             zEtlFlowRef.value.addNodeFn(newItem, e)
         })
     }
+}
+
+// 节点真正放到画布后弹出编辑弹窗
+function handleNodeDropped(nodeData: any) {
+    addTaskModalRef.value?.showModal((formResult: any) => {
+        return new Promise((resolve: any) => {
+            zEtlFlowRef.value.updateNodeFn({
+                ...nodeData,
+                name: formResult.name,
+                aliaCode: formResult.aliaCode || nodeData.aliaCode,
+                remark: formResult.remark || '',
+            })
+            resolve()
+        })
+    }, {
+        name: nodeData.name,
+        aliaCode: nodeData.aliaCode,
+        remark: nodeData.remark || ''
+    }, () => {
+        // 取消时删除已放置的节点
+        zEtlFlowRef.value.removeNodeById(nodeData.id)
+    })
 }
 
 function initFlowData() {
@@ -194,7 +219,13 @@ function saveData() {
         sparkEtlConfig: {
             webConfig: allCellData,
             nodeList: allCellData.filter((node: any) => node.shape === 'dag-node').map((node: any) => {
-                return node.data.nodeConfigData
+                const nodeConfigData = node.data.nodeConfigData
+                const noInputEtlTypes = ['DATA_UNION', 'DATA_FILTER', 'DATA_TRANSFORM', 'DATA_CUSTOM', 'DATA_ADD_COL']
+                if (noInputEtlTypes.includes(nodeConfigData.type)) {
+                    const { inputEtl, ...rest } = nodeConfigData
+                    return rest
+                }
+                return nodeConfigData
             }),
             nodeMapping: allCellData.filter((node: any) => node.shape === 'dag-edge').map((edge: any) => {
                 return [edge.source.cell, edge.target.cell]
@@ -301,6 +332,25 @@ onMounted(() => {
                         ElMessage.error('无前置任务，请先设置上游')
                     }
                 }
+            })
+        } else if (e.type === 'task_edit') {
+            nextTick(() => {
+                const nodeData = e.data.nodeConfigData
+                addTaskModalRef.value?.showModal((formResult: any) => {
+                    return new Promise((resolve: any) => {
+                        zEtlFlowRef.value?.updateNodeFn({
+                            ...nodeData,
+                            name: formResult.name,
+                            aliaCode: formResult.aliaCode || nodeData.aliaCode,
+                            remark: formResult.remark || '',
+                        })
+                        resolve()
+                    })
+                }, {
+                    name: nodeData.name,
+                    aliaCode: nodeData.aliaCode,
+                    remark: nodeData.remark || ''
+                })
             })
         }
     })

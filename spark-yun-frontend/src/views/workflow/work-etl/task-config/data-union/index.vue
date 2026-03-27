@@ -24,8 +24,8 @@
                 </el-icon>
             </span>
         </div>
-        <div class="form-options__list" v-for="(item, i) in formData.unionEtl">
-            <el-icon v-if="formData.unionEtl.length > 1" class="remove-btn" @click="removeItem(index)">
+        <div class="form-options__list" v-for="(unionItem, i) in formData.unionEtl" :style="getGroupStyle(i)">
+            <el-icon v-if="formData.unionEtl.length > 1" class="remove-block-btn" @click="removeItem(i)">
                 <CircleClose />
             </el-icon>
             <div class="list-item-row">
@@ -39,7 +39,6 @@
                     <el-select v-model="formData.unionEtl[i].aliaCode" placeholder="请选择">
                         <el-option
                             v-for="item in tableNameList"
-                            :disabled="formData.mainAliaCode === item.value"
                             :key="item.value"
                             :label="item.label"
                             :value="item.value"
@@ -48,7 +47,7 @@
                 </el-form-item>
             </div>
         </div>
-        <div class="table-container" style="height: 314px;">
+        <!-- <div v-show="false" class="table-container" style="height: 314px;">
             <BlockTable
               :table-config="tableConfig"
             >
@@ -58,7 +57,7 @@
                     </div>
                 </template>
             </BlockTable>
-        </div>
+        </div> -->
     </div>
 </template>
 
@@ -66,6 +65,7 @@
 import { ref, defineEmits, computed, onMounted, reactive, nextTick } from 'vue'
 import { ElMessage, ElMessageBox, FormInstance, FormRules } from 'element-plus'
 import { TypeList, ConfigRules, TableConfig } from './config.ts'
+import { groupColorPalette } from '../data-filter/config.ts'
 
 interface Option {
     label: string
@@ -100,14 +100,26 @@ const tableNameList = computed(() => {
         return props.incomeNodes.map((node: any) => {
             const currentNodeData = node.data.nodeConfigData
             return {
-                label: `${currentNodeData.name}-${currentNodeData.inputEtl.tableName}`,
-                value: currentNodeData.inputEtl.tableName
+                label: currentNodeData.name,
+                value: currentNodeData.aliaCode,
+                data: currentNodeData
             }
         })
     } else {
         return []
     }
 })
+
+function getGroupStyle(index: number) {
+    const palette = groupColorPalette[index % groupColorPalette.length]
+    return {
+        borderColor: palette.borderOuter,
+        borderLeftColor: palette.border,
+        borderLeftWidth: '3px',
+        borderLeftStyle: 'solid',
+        backgroundColor: palette.background
+    }
+}
 
 function addNewOption() {
     formData.value.unionEtl.push({
@@ -123,27 +135,42 @@ function tableChangeEvent(e: string, list: any[]) {
     list.forEach((data: any) => {
         data.aliaCode = ''
     })
+    updateOutColumnList()
+}
+
+function updateOutColumnList() {
+    const mainAliaCode = formData.value.mainAliaCode
+    if (!mainAliaCode || !props.incomeNodes || !props.incomeNodes.length) {
+        tableConfig.tableData = []
+        formData.value.outColumnList = []
+        return
+    }
+    // 如果已有保存的outColumnList，直接使用
+    if (formData.value.outColumnList && formData.value.outColumnList.length) {
+        tableConfig.tableData = formData.value.outColumnList
+        return
+    }
+    const mainItem = tableNameList.value.find((item: any) => item.value === mainAliaCode)
+    if (mainItem && mainItem.data.outColumnList) {
+        const fields = (mainItem.data.outColumnList || []).filter((item: any) => item.checked !== false).map((column: any) => {
+            return {
+                colName: column.colName,
+                colType: column.colType,
+                remark: column.remark,
+                checked: true
+            }
+        })
+        tableConfig.tableData = fields
+        formData.value.outColumnList = [...fields]
+        formData.value.inputEtl = mainItem.data.inputEtl
+    } else {
+        tableConfig.tableData = []
+        formData.value.outColumnList = []
+    }
 }
 
 onMounted(() => {
-    tableConfig.tableData = []
-    if (props.incomeNodes && props.incomeNodes[0]) {
-        tableConfig.tableData = props.incomeNodes[0].data.nodeConfigData.outColumnList.map((column) => {
-            return {
-                colName: column.colName,
-                colType: column.colType,
-                remark: column.remark
-            }
-        })
-        formData.value.outColumnList = props.incomeNodes[0].data.nodeConfigData.outColumnList.map((column) => {
-            return {
-                colName: column.colName,
-                colType: column.colType,
-                remark: column.remark
-            }
-        })
-        formData.value.inputEtl = props.incomeNodes[0].data.nodeConfigData.inputEtl
-    }
+    updateOutColumnList()
 })
 </script>
 
@@ -177,17 +204,32 @@ onMounted(() => {
             .list-item-row {
                 display: flex;
                 .el-form-item {
-                    width: 100%;
                     margin-right: 16px;
+                    &:first-child {
+                        flex: 0 0 30%;
+                    }
+                    &:last-child {
+                        flex: 1;
+                        margin-right: 0;
+                    }
                 }
             }
 
-            .remove-btn {
+            .remove-block-btn {
                 position: absolute;
-                right: 8px;
-                top: 32px;
-                color: getCssVar('color', 'primary');
+                right: -8px;
+                top: -8px;
+                font-size: 16px;
+                color: #c0c4cc;
                 cursor: pointer;
+                z-index: 1;
+                background: #fff;
+                border-radius: 50%;
+                transition: color 0.2s;
+
+                &:hover {
+                    color: #f56c6c;
+                }
             }
             .form-options-ul__list {
                 width: 100%;
@@ -195,7 +237,6 @@ onMounted(() => {
 
             .form-options__item {
                 display: flex;
-                margin-bottom: 8px;
 
                 .el-form-item {
                     width: 100%;
@@ -240,6 +281,13 @@ onMounted(() => {
             justify-content: flex-end;
             .el-select {
                 width: 100%;
+            }
+        }
+        &.form-item-top {
+            display: flex;
+            flex-direction: column;
+            .el-form-item__label {
+                margin-bottom: 1px;
             }
         }
     }

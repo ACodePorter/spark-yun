@@ -5,7 +5,7 @@ export const TaskParams = {
             datasourceId: '',
             dbType: '',
             tableName: '',
-            numPartitions: null,
+            numPartitions: 1,
             partitionColumn: ''
         },
         outColumnList: []
@@ -51,6 +51,17 @@ export const TaskParams = {
         outColumnList: [],
         mainAliaCode: ''
     },
+    // 数据过滤
+    'DATA_FILTER': {
+        filterEtl: [{
+            filterType: 'CONDITION_FILTER',
+            filterColumn: '',
+            filterCondition: '',
+            filterValue: '',
+            customFilter: ''
+        }],
+        outColumnList: []
+    },
     // 数据合并
     'DATA_UNION': {
         unionEtl: [{
@@ -62,11 +73,18 @@ export const TaskParams = {
     },
     // 新增字段
     'DATA_ADD_COL': {
+        addColEtl: [{
+            colName: '',
+            colType: '',
+            remark: ''
+        }],
         outColumnList: []
     },
     // 数据自定义
     'DATA_CUSTOM': {
-        sql: '',
+        customSqlEtl: {
+            sql: ''
+        },
         outColumnList: []
     }
 }
