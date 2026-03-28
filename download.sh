@@ -113,7 +113,7 @@ download_file() {
     fi
 
     echo "开始下载 $description..."
-    if curl -ssL "$url" -o "$output_path"; then
+    if curl -ssL --retry 3 --retry-delay 2 "$url" -o "$output_path"; then
       if head -n 1 "$output_path" | grep -q "<?xml"; then
         if grep -q "<Error>" "$output_path" && grep -q "<Code>NoSuchKey</Code>" "$output_path"; then
             rm -rf "$output_path"
@@ -122,6 +122,10 @@ download_file() {
         fi
       fi
       echo "$description 下载成功"
+    else
+      rm -rf "$output_path"
+      echo "$description 下载失败" >&2
+      exit 1
     fi
 }
 
