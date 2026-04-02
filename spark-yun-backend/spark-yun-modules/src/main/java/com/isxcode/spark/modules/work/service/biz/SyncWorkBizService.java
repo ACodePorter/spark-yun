@@ -1,8 +1,8 @@
 package com.isxcode.spark.modules.work.service.biz;
 
-import com.isxcode.spark.api.datasource.constants.DatasourceType;
 import com.isxcode.spark.api.datasource.dto.ColumnMetaDto;
 import com.isxcode.spark.api.datasource.dto.ConnectInfo;
+import com.isxcode.spark.api.datasource.dto.TableMetaInfo;
 import com.isxcode.spark.api.work.req.GetCreateTableSqlReq;
 import com.isxcode.spark.api.work.req.GetDataSourceColumnsReq;
 import com.isxcode.spark.api.work.req.GetDataSourceDataReq;
@@ -29,7 +29,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
-import java.util.Map;
+import java.util.Locale;
 import java.util.Optional;
 
 @Service
@@ -60,17 +60,14 @@ public class SyncWorkBizService {
             log.error(e.getMessage(), e);
             throw new IsxAppException("【" + datasourceEntity.getName() + "】连接异常，请检查数据源");
         }
-        Map<String, String> transform = getTransform(connection, getDataSourceTablesReq.getTablePattern());
-        if (DatasourceType.ORACLE.equals(datasourceEntity.getDbType())) {
-            transform.put("schema", connectInfo.getUsername().toUpperCase());
-        }
-        List<String> tables = syncWorkService.tables(connection.getMetaData(), transform.get("catalog"),
-            transform.get("schema"), transform.get("tableName"));
+        TableMetaInfo tableMetaInfo = getTableMetaInfo(connection, getDataSourceTablesReq.getTablePattern());
+        List<String> tables = syncWorkService.tables(connection.getMetaData(), tableMetaInfo.getCatalog(),
+            tableMetaInfo.getSchema(), tableMetaInfo.getTableName());
 
         // 开启视图开关再查询
         if (getDataSourceTablesReq.getIsListViews() == null || getDataSourceTablesReq.getIsListViews()) {
-            List<String> views = syncWorkService.views(connection.getMetaData(), transform.get("catalog"),
-                transform.get("schema"), transform.get("tableName"));
+            List<String> views = syncWorkService.views(connection.getMetaData(), tableMetaInfo.getCatalog(),
+                tableMetaInfo.getSchema(), tableMetaInfo.getTableName());
             tables.addAll(views);
         }
         connection.close();
@@ -90,9 +87,9 @@ public class SyncWorkBizService {
             log.error(e.getMessage(), e);
             throw new IsxAppException("【" + datasourceEntity.getName() + "】连接异常，请检查数据源");
         }
-        Map<String, String> transform = getTransform(connection, getDataSourceColumnsReq.getTableName());
-        List<ColumnMetaDto> columns = syncWorkService.columns(connection.getMetaData(), transform.get("catalog"),
-            transform.get("schema"), transform.get("tableName"));
+        TableMetaInfo tableMetaInfo = getTableMetaInfo(connection, getDataSourceColumnsReq.getTableName());
+        List<ColumnMetaDto> columns = syncWorkService.columns(connection.getMetaData(), tableMetaInfo.getCatalog(),
+            tableMetaInfo.getSchema(), tableMetaInfo.getTableName());
         connection.close();
 
         // 给字段加注释
@@ -122,10 +119,10 @@ public class SyncWorkBizService {
         ConnectInfo connectInfo = datasourceMapper.datasourceEntityToConnectInfo(datasourceEntity);
         Datasource datasource = dataSourceFactory.getDatasource(connectInfo.getDbType());
         Connection connection = datasource.getConnection(connectInfo);
-        Map<String, String> transform = getTransform(connection, getCreateTableSqlReq.getTableName());
-        ResultSet columns = connection.getMetaData().getColumns(transform.get("catalog"), transform.get("schema"),
-            transform.get("tableName"), null);
-        String sql = String.join(" ", "CREATE TABLE", transform.get("tableName"), "(");
+        TableMetaInfo tableMetaInfo = getTableMetaInfo(connection, getCreateTableSqlReq.getTableName());
+        ResultSet columns = connection.getMetaData().getColumns(tableMetaInfo.getCatalog(), tableMetaInfo.getSchema(),
+            tableMetaInfo.getTableName(), null);
+        String sql = String.join(" ", "CREATE TABLE", tableMetaInfo.getTableName(), "(");
         while (columns.next()) {
             sql = String.join(" ", sql, "\n", columns.getString("COLUMN_NAME"), "String,");
         }
@@ -133,31 +130,76 @@ public class SyncWorkBizService {
         return GetCreateTableSqlRes.builder().sql(sql.substring(0, sql.length() - 1) + "\n)").build();
     }
 
-    private Map<String, String> getTransform(Connection connection, String tableName) {
-        String dataBase = null;
-        if (tableName.contains(".") && !tableName.contains("^") && !tableName.contains("*")) {
-            dataBase = tableName.split("\\.")[0];
-            tableName = tableName.split("\\.")[1];
-        }
+    private TableMetaInfo getTableMetaInfo(Connection connection, String tableName) {
+        String catalog = null;
+        String schema = null;
+        String productName = null;
+        String userName = null;
+        String finalTableName = tableName == null ? null : tableName.trim();
 
-        String catalog = getCatalogOrSchema(connection, true);
-        String schema = getCatalogOrSchema(connection, false);
-
-        Map<String, String> transform = syncWorkService.transform(dataBase, catalog, schema);
-        transform.put("tableName", tableName);
-        return transform;
-    }
-
-    private String getCatalogOrSchema(Connection connection, boolean isCatalog) {
         try {
-            if (isCatalog) {
-                return connection.getCatalog();
-            } else {
-                return connection.getSchema();
-            }
+            catalog = connection.getCatalog();
         } catch (SQLException | AbstractMethodError e) {
             log.debug(e.getMessage(), e);
-            return null;
         }
+        try {
+            schema = connection.getSchema();
+        } catch (SQLException | AbstractMethodError e) {
+            log.debug(e.getMessage(), e);
+        }
+        try {
+            productName = connection.getMetaData().getDatabaseProductName();
+        } catch (SQLException e) {
+            log.debug(e.getMessage(), e);
+        }
+        try {
+            userName = connection.getMetaData().getUserName();
+        } catch (SQLException e) {
+            log.debug(e.getMessage(), e);
+        }
+
+        boolean canSplit = finalTableName != null && !finalTableName.trim().isEmpty() && !finalTableName.contains("^")
+            && !finalTableName.contains("*") && !finalTableName.contains("%") && !finalTableName.contains("(")
+            && !finalTableName.contains(")") && !finalTableName.contains("|") && !finalTableName.contains("[")
+            && !finalTableName.contains("]") && finalTableName.contains(".");
+
+        if (canSplit) {
+            String[] split = finalTableName.split("\\.");
+            if (split.length == 2) {
+                // schema.table 或 catalog.table：优先填 schema，若 schema 为空且有 catalog 则填 catalog
+                if ((schema == null || schema.trim().isEmpty()) && !(catalog == null || catalog.trim().isEmpty())) {
+                    catalog = split[0];
+                } else {
+                    schema = split[0];
+                }
+                finalTableName = split[1];
+            } else if (split.length == 3) {
+                // catalog.schema.table
+                catalog = split[0];
+                schema = split[1];
+                finalTableName = split[2];
+            }
+        }
+
+        boolean isOracle = productName != null && productName.toLowerCase(Locale.ROOT).contains("oracle");
+        if (isOracle) {
+            // Oracle 使用 schema，不使用 catalog
+            catalog = null;
+            if (schema == null || schema.trim().isEmpty()) {
+                if (userName != null && !userName.trim().isEmpty()) {
+                    schema = userName.contains("@") ? userName.substring(0, userName.indexOf("@")) : userName;
+                }
+            }
+            if (schema != null && !schema.trim().isEmpty()) {
+                schema = schema.toUpperCase(Locale.ROOT);
+            }
+            boolean canFormat = finalTableName != null && !finalTableName.trim().isEmpty()
+                && !finalTableName.contains("^") && !finalTableName.contains("*") && !finalTableName.contains("%");
+            if (canFormat) {
+                finalTableName = finalTableName.toUpperCase(Locale.ROOT);
+            }
+        }
+
+        return TableMetaInfo.builder().catalog(catalog).schema(schema).tableName(finalTableName).build();
     }
 }
