@@ -123,6 +123,11 @@ public class WorkConfigBizService {
             workConfig.setSyncWorkConfig(JSON.toJSONString(wocConfigWorkReq.getSyncWorkConfig()));
         }
 
+        // 用户更新数据同步Flink
+        if (wocConfigWorkReq.getSyncFlinkConfig() != null) {
+            workConfig.setSyncFlinkConfig(JSON.toJSONString(wocConfigWorkReq.getSyncFlinkConfig()));
+        }
+
         // 用户更新Excel数据同步
         if (wocConfigWorkReq.getExcelSyncConfig() != null) {
             workConfig.setExcelSyncConfig(JSON.toJSONString(wocConfigWorkReq.getExcelSyncConfig()));
@@ -141,7 +146,8 @@ public class WorkConfigBizService {
         // 用户更新集群配置
         if (wocConfigWorkReq.getClusterConfig() != null) {
 
-            if (WorkType.FLINK_SQL.equals(work.getWorkType()) || WorkType.FLINK_JAR.equals(work.getWorkType())) {
+            if (WorkType.FLINK_SQL.equals(work.getWorkType()) || WorkType.FLINK_JAR.equals(work.getWorkType())
+                || WorkType.DATA_SYNC_FLINK.equals(work.getWorkType())) {
 
                 Map<String, Object> flinkConfig = wocConfigWorkReq.getClusterConfig().getFlinkConfig();
                 // 如果是等级的模式，需要帮用户默认填充sparkConfig

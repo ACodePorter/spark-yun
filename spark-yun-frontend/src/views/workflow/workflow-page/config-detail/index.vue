@@ -15,6 +15,7 @@
               <el-form-item label="数据源" prop="datasourceId">
                 <el-select
                   v-model="dataSourceForm.datasourceId"
+                  :filterable="true"
                   placeholder="请选择"
                 >
                   <el-option
@@ -45,7 +46,7 @@
                   </el-radio-group>
                 </el-form-item>
                 <el-form-item label="计算集群" prop="clusterId">
-                  <el-select v-model="clusterConfig.clusterId" placeholder="请选择" @change="clusterIdChangeEvent">
+                  <el-select v-model="clusterConfig.clusterId" :filterable="true" placeholder="请选择" @change="clusterIdChangeEvent">
                     <el-option
                       v-for="item in clusterList"
                       :key="item.value"
@@ -61,6 +62,7 @@
                   <el-select
                     v-model="clusterConfig.datasourceId"
                     placeholder="请选择"
+                    :filterable="true"
                     @visible-change="getDataSourceList($event, 'HIVE')"
                   >
                     <el-option
@@ -72,7 +74,7 @@
                   </el-select>
                 </el-form-item>
                 <el-form-item label="集群节点" prop="clusterNodeId" v-if="['BASH', 'PYTHON'].includes(workItemConfig.workType)">
-                  <el-select v-model="clusterConfig.clusterNodeId" placeholder="请选择" @visible-change="getClusterNodeList">
+                  <el-select v-model="clusterConfig.clusterNodeId" :filterable="true" placeholder="请选择" @visible-change="getClusterNodeList">
                     <el-option
                       v-for="item in clusterNodeList"
                       :key="item.value"
@@ -85,12 +87,12 @@
                   <el-icon class="modal-full-screen" @click="fullScreenEvent('sparkJsonFullStatus')"><FullScreen v-if="!sparkJsonFullStatus" /><Close v-else /></el-icon>
                   <code-mirror v-model="clusterConfig.sparkConfigJson" basic :lang="lang"/>
                 </el-form-item>
-                <el-form-item label="flinkConfig" v-if="clusterConfig.setMode === 'ADVANCE' && ['FLINK_SQL','FLINK_JAR'].includes(workItemConfig.workType) " :class="{ 'show-screen__full': sparkJsonFullStatus }">
+                <el-form-item label="flinkConfig" v-if="clusterConfig.setMode === 'ADVANCE' && ['FLINK_SQL','FLINK_JAR','DATA_SYNC_FLINK'].includes(workItemConfig.workType) " :class="{ 'show-screen__full': sparkJsonFullStatus }">
                   <el-icon class="modal-full-screen" @click="fullScreenEvent('sparkJsonFullStatus')"><FullScreen v-if="!sparkJsonFullStatus" /><Close v-else /></el-icon>
                   <code-mirror v-model="clusterConfig.flinkConfigJson" basic :lang="lang"/>
                 </el-form-item>
                 <el-form-item label="资源等级" v-else>
-                  <el-select v-model="clusterConfig.resourceLevel" placeholder="请选择">
+                  <el-select v-model="clusterConfig.resourceLevel" :filterable="true" placeholder="请选择">
                     <el-option
                       v-for="item in resourceLevelOptions"
                       :key="item.value"
@@ -167,7 +169,7 @@
                 </el-form-item>
                 <template v-else>
                   <el-form-item label="调度周期" prop="range">
-                    <el-select v-model="cronConfig.range" placeholder="请选择" :disabled="!cronConfig.enable" @change="changeScheduleRangeEvent">
+                    <el-select v-model="cronConfig.range" :filterable="true" placeholder="请选择" :disabled="!cronConfig.enable" @change="changeScheduleRangeEvent">
                       <el-option
                         v-for="item in scheduleRange"
                         :key="item.value"
@@ -258,7 +260,7 @@
                       />
                     </el-form-item>
                     <el-form-item label="指定时间" prop="monthDay">
-                      <el-select v-model="cronConfig.monthDay" :disabled="!cronConfig.enable" placeholder="请选择">
+                      <el-select v-model="cronConfig.monthDay":filterable="true" :disabled="!cronConfig.enable" placeholder="请选择">
                         <el-option
                           v-for="item in dayList"
                           :key="item.value"
@@ -280,7 +282,7 @@
                       />
                     </el-form-item>
                     <el-form-item label="指定时间" prop="weekDate">
-                      <el-select v-model="cronConfig.weekDate" placeholder="请选择" :disabled="!cronConfig.enable">
+                      <el-select v-model="cronConfig.weekDate" :filterable="true" placeholder="请选择" :disabled="!cronConfig.enable">
                         <el-option
                           v-for="item in weekDateList"
                           :key="item.value"
@@ -338,7 +340,7 @@
             </el-form>
           </div>
           <!-- 函数配置 -->
-          <div class="config-item" v-if="['SPARK_SQL', 'FLINK_SQL', 'DATA_SYNC_JDBC', 'EXCEL_SYNC_JDBC', 'DB_MIGRATE'].includes(workItemConfig.workType)">
+          <div class="config-item" v-if="['SPARK_SQL', 'FLINK_SQL', 'DATA_SYNC_JDBC', 'DATA_SYNC_FLINK', 'EXCEL_SYNC_JDBC', 'DB_MIGRATE'].includes(workItemConfig.workType)">
             <div class="item-title">函数配置</div>
             <el-form
               ref="syncRuleForm"
@@ -356,7 +358,7 @@
             </el-form>
           </div>
           <!-- 依赖配置 -->
-          <div class="config-item" v-if="['SPARK_SQL','FLINK_SQL', 'SPARK_JAR','FLINK_JAR', 'DATA_SYNC_JDBC', 'EXCEL_SYNC_JDBC', 'DB_MIGRATE'].includes(workItemConfig.workType)">
+          <div class="config-item" v-if="['SPARK_SQL','FLINK_SQL', 'SPARK_JAR','FLINK_JAR', 'DATA_SYNC_JDBC', 'DATA_SYNC_FLINK', 'EXCEL_SYNC_JDBC', 'DB_MIGRATE'].includes(workItemConfig.workType)">
             <div class="item-title">依赖配置</div>
             <el-form
               ref="syncRuleForm"

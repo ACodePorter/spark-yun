@@ -25,6 +25,7 @@
         <el-select
           v-model="formData.workType"
           placeholder="请选择"
+          :filterable="true"
           :disabled="formData.id ? true : false"
         >
           <el-option
@@ -95,7 +96,7 @@ const typeList = reactive([
     value: 'SPARK_SQL'
   },
   {
-    label: '数据同步作业',
+    label: '数据同步Spark版本',
     value: 'DATA_SYNC_JDBC'
   },
   {
