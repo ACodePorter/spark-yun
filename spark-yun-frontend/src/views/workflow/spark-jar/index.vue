@@ -7,6 +7,15 @@
                 </el-icon>
                 <span class="btn-text">返回</span>
             </div>
+            <div class="btn-box" @click="saveData">
+                <el-icon v-if="!saveLoading">
+                    <Finished />
+                </el-icon>
+                <el-icon v-else class="is-loading">
+                    <Loading />
+                </el-icon>
+                <span class="btn-text">保存</span>
+            </div>
             <div class="btn-box" @click="runWorkData">
                 <el-icon v-if="!runningLoading">
                     <VideoPlay />
@@ -24,15 +33,6 @@
                     <Loading />
                 </el-icon>
                 <span class="btn-text">中止</span>
-            </div>
-            <div class="btn-box" @click="saveData">
-                <el-icon v-if="!saveLoading">
-                    <Finished />
-                </el-icon>
-                <el-icon v-else class="is-loading">
-                    <Loading />
-                </el-icon>
-                <span class="btn-text">保存</span>
             </div>
             <div class="btn-box" @click="setConfigData">
                 <el-icon>
@@ -91,7 +91,8 @@
                     </el-form>
                 </div>
                 <el-collapse v-model="collapseActive" class="work-item-log__collapse" ref="logCollapseRef">
-                    <el-collapse-item title="查看日志" :disabled="true" name="1">
+                    <div class="log-resize-handle" @mousedown="startResizeLogPanel"></div>
+            <el-collapse-item title="查看日志" :disabled="true" name="1">
                         <template #title>
                         <el-tabs v-model="activeName" @tab-click="changeCollapseUp" @tab-change="tabChangeEvent">
                             <template v-for="tab in tabList" :key="tab.code">
@@ -107,8 +108,8 @@
                             </el-icon>
                         </span>
                         </template>
-                        <div class="log-show log-show-datasync">
-                            <component :is="currentTab" ref="containerInstanceRef" class="show-container" />
+                        <div class="log-show log-show-datasync" :style="{ height: `${logPanelHeight}px` }">
+                            <component :is="currentTab" ref="containerInstanceRef" class="show-container" :style="{ height: `${logPanelHeight}px` }" />
                         </div>
                     </el-collapse-item>
                 </el-collapse>
@@ -120,7 +121,7 @@
 </template>
 
 <script lang="ts" setup>
-import { reactive, ref, onMounted, markRaw, nextTick } from 'vue'
+import { reactive, ref, onMounted, onUnmounted, markRaw, nextTick } from 'vue'
 import Breadcrumb from '@/layout/bread-crumb/index.vue'
 import LoadingPage from '@/components/loading/index.vue'
 // import ConfigModal from './config-modal/index.vue'
@@ -164,6 +165,12 @@ const containerInstanceRef = ref(null)
 const logCollapseRef = ref()
 const collapseActive = ref('0')
 const isCollapse = ref(false)
+const logPanelHeight = ref(320)
+const resizeState = reactive({
+    resizing: false,
+    startY: 0,
+    startHeight: 320
+})
 
 let workConfig = reactive({
     workId: '',
@@ -265,6 +272,30 @@ function getFileCenterList() {
     }).catch(() => {
         fileIdList.value = []
     })
+}
+
+function startResizeLogPanel(event: MouseEvent) {
+    resizeState.resizing = true
+    resizeState.startY = event.clientY
+    resizeState.startHeight = logPanelHeight.value
+    document.addEventListener('mousemove', onResizeLogPanel)
+    document.addEventListener('mouseup', stopResizeLogPanel)
+    event.preventDefault()
+}
+
+function onResizeLogPanel(event: MouseEvent) {
+    if (!resizeState.resizing) {
+        return
+    }
+    const maxHeight = Math.max(220, window.innerHeight - 220)
+    const nextHeight = resizeState.startHeight + (resizeState.startY - event.clientY)
+    logPanelHeight.value = Math.min(maxHeight, Math.max(180, nextHeight))
+}
+
+function stopResizeLogPanel() {
+    resizeState.resizing = false
+    document.removeEventListener('mousemove', onResizeLogPanel)
+    document.removeEventListener('mouseup', stopResizeLogPanel)
 }
 
 function tabChangeEvent(e: string) {
@@ -476,6 +507,11 @@ onMounted(() => {
     activeName.value = 'PublishLog'
     currentTab.value = markRaw(PublishLog)
 })
+
+onUnmounted(() => {
+    stopResizeLogPanel()
+})
+
 </script>
 
 <style lang="scss">
@@ -498,6 +534,16 @@ onMounted(() => {
             }
 
             .work-item-log__collapse {
+
+        .log-resize-handle {
+            height: 6px;
+            cursor: ns-resize;
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: -3px;
+            z-index: 2;
+        }
                 position: absolute;
                 left: 0;
                 right: 0;
@@ -550,9 +596,10 @@ onMounted(() => {
                 .log-show {
                     padding: 0 20px;
                     box-sizing: border-box;
+            overflow: auto;
 
                     &.log-show-datasync {
-                        height: calc(100vh - 306px);
+                        min-height: 180px;
 
                         .zqy-download-log {
                             right: 40px;
@@ -565,7 +612,7 @@ onMounted(() => {
                     }
 
                     .show-container {
-                        height: calc(100vh - 310px);
+                        min-height: 180px;
                         overflow: auto;
                     }
 
@@ -607,6 +654,8 @@ onMounted(() => {
 
           .btn-text {
             margin-left: 4px;
+            font-size: inherit;
+            line-height: 1;
           }
 
           &:hover {

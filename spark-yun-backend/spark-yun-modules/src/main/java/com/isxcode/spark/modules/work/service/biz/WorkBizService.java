@@ -121,7 +121,8 @@ public class WorkBizService {
             || WorkType.FLINK_JAR.equals(addWorkReq.getWorkType())
             || WorkType.FLINK_SQL.equals(addWorkReq.getWorkType())
             || WorkType.DB_MIGRATE.equals(addWorkReq.getWorkType())
-            || WorkType.SPARK_ETL.equals(addWorkReq.getWorkType())) {
+            || WorkType.SPARK_ETL.equals(addWorkReq.getWorkType())
+            || WorkType.API_SYNC_JDBC.equals(addWorkReq.getWorkType())) {
             if (Strings.isEmpty(addWorkReq.getClusterId())) {
                 throw new IsxAppException("必须选择计算引擎");
             }
@@ -168,7 +169,8 @@ public class WorkBizService {
             || WorkType.BASH.equals(addWorkReq.getWorkType()) || WorkType.PYTHON.equals(addWorkReq.getWorkType())
             || WorkType.SPARK_JAR.equals(addWorkReq.getWorkType()) || WorkType.PY_SPARK.equals(addWorkReq.getWorkType())
             || WorkType.DB_MIGRATE.equals(addWorkReq.getWorkType())
-            || WorkType.SPARK_ETL.equals(addWorkReq.getWorkType())) {
+            || WorkType.SPARK_ETL.equals(addWorkReq.getWorkType())
+            || WorkType.API_SYNC_JDBC.equals(addWorkReq.getWorkType())) {
             workConfigService.initClusterConfig(workConfig, addWorkReq.getClusterId(), addWorkReq.getClusterNodeId(),
                 addWorkReq.getEnableHive(), addWorkReq.getDatasourceId());
         }
@@ -473,6 +475,10 @@ public class WorkBizService {
 
         if (!Strings.isEmpty(workConfig.getSyncFlinkConfig())) {
             getWorkRes.setSyncFlinkConfig(JSON.parseObject(workConfig.getSyncFlinkConfig(), SyncFlinkConfig.class));
+        }
+
+        if (!Strings.isEmpty(workConfig.getApiSyncConfig())) {
+            getWorkRes.setApiSyncConfig(JSON.parseObject(workConfig.getApiSyncConfig(), ApiSyncConfig.class));
         }
 
         return getWorkRes;

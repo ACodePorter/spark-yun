@@ -92,6 +92,15 @@
                 <template v-if="containerType === 'flow'">
                     <div class="option-btns">
                         <!-- 非运行状态 -->
+                        <div class="btn-box" @click="saveData">
+                            <el-icon v-if="!btnLoadingConfig.saveLoading">
+                                <Finished />
+                            </el-icon>
+                            <el-icon v-else class="is-loading">
+                                <Loading />
+                            </el-icon>
+                            <span class="btn-text">保存</span>
+                        </div>
                         <div class="btn-box" @click="runWorkFlowDataEvent">
                             <el-icon v-if="!btnLoadingConfig.runningLoading">
                                 <VideoPlay />
@@ -119,15 +128,6 @@
                             </el-icon>
                             <span class="btn-text">重跑</span>
                         </div>
-                        <div class="btn-box" @click="saveData">
-                            <el-icon v-if="!btnLoadingConfig.saveLoading">
-                                <Finished />
-                            </el-icon>
-                            <el-icon v-else class="is-loading">
-                                <Loading />
-                            </el-icon>
-                            <span class="btn-text">保存</span>
-                        </div>
                         <div class="btn-box" @click="showConfigDetail">
                             <el-icon>
                                 <Setting />
@@ -151,6 +151,30 @@
                                 <Loading />
                             </el-icon>
                             <span class="btn-text">下线</span>
+                        </div>
+                        <div class="btn-box" @click="zoomOutFlowCanvas">
+                            <el-icon>
+                                <ZoomOut />
+                            </el-icon>
+                            <span class="btn-text">缩小</span>
+                        </div>
+                        <div class="btn-box" @click="zoomInFlowCanvas">
+                            <el-icon>
+                                <ZoomIn />
+                            </el-icon>
+                            <span class="btn-text">放大</span>
+                        </div>
+                        <div class="btn-box" @click="centerFlowCanvas">
+                            <el-icon>
+                                <MapLocation />
+                            </el-icon>
+                            <span class="btn-text">定位</span>
+                        </div>
+                        <div class="btn-box" @click="refreshFlowCanvas">
+                            <el-icon>
+                                <Refresh />
+                            </el-icon>
+                            <span class="btn-text">刷新</span>
                         </div>
                         <div class="btn-box" @click="queryRunWorkInstancesEvent" v-if="workflowInstanceId">
                             <el-icon>
@@ -181,10 +205,17 @@
                         @back="backToFlow"
                         @locationNode="locationNode"
                     ></WorkApi>
+                    <ApiSync
+                        v-if="showWorkItem && workConfig.workType === 'API_SYNC_JDBC'"
+                        :workItemConfig="workConfig"
+                        @back="backToFlow"
+                        @locationNode="locationNode"
+                    ></ApiSync>
                     <WorkItem
                         v-if="
                             showWorkItem &&
                             !['SPARK_JAR',
+                            'API_SYNC_JDBC',
                             'DATA_SYNC_JDBC',
                             'DATA_SYNC_FLINK',
                             'EXCEL_SYNC_JDBC',
@@ -255,10 +286,11 @@ import DataSync from '../data-sync/index.vue'
 import DataSyncFlink from '../data-sync-flink/index.vue'
 import ExcelImport from '../excel-import/index.vue'
 import WorkApi from '../work-api/index.vue'
+import ApiSync from '../api-sync/index.vue'
 import sparkJar from '../spark-jar/index.vue'
 import DatabaseMigrate from '../database-migrate/index.vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Loading, Sort } from '@element-plus/icons-vue'
+import { Loading, MapLocation, Refresh, Sort, ZoomIn, ZoomOut } from '@element-plus/icons-vue'
 import EllipsisTooltip from '@/components/ellipsis-tooltip/ellipsis-tooltip.vue'
 import {
     AddWorkflowDetailList,
@@ -792,6 +824,22 @@ function locationNode(nodeId: string) {
         queryRunWorkInstancesEvent()
         zqyFlowRef.value.selectNodeEvent(nodeId)
     })
+}
+
+function zoomInFlowCanvas() {
+    zqyFlowRef.value?.zoomIn()
+}
+
+function zoomOutFlowCanvas() {
+    zqyFlowRef.value?.zoomOut()
+}
+
+function centerFlowCanvas() {
+    zqyFlowRef.value?.locationCenter()
+}
+
+function refreshFlowCanvas() {
+    zqyFlowRef.value?.refresh()
 }
 
 function changeWorkFlow(workFlow: any) {
