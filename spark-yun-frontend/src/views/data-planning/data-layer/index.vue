@@ -9,8 +9,8 @@
             </div>
             <div class="zqy-seach">
                 <el-radio-group v-model="tableType" @change="changeTypeEvent">
-                    <el-radio-button label="layer">分层搜索</el-radio-button>
                     <el-radio-button label="all">全局搜索</el-radio-button>
+                    <el-radio-button label="layer">分层搜索</el-radio-button>
                 </el-radio-group>
                 <el-input
                     v-model="keyword"
@@ -35,35 +35,42 @@
                             class="name-click"
                             @click="showDetail(scopeSlot.row)"
                         >{{ scopeSlot.row.name }}</span>
-                        <span v-else>{{ scopeSlot.row.name }}</span>
+                        <span
+                            v-else
+                            class="name-click"
+                            @click="dataModelPage(scopeSlot.row)"
+                        >{{ scopeSlot.row.name }}</span>
                     </template>
                     <template #parentNameSlot="scopeSlot">
-                        <span
-                            v-if="tableType === 'layer' && scopeSlot.row.parentNameList"
-                            class="name-click"
-                            @click="showParentDetail(scopeSlot.row)"
-                        >{{ scopeSlot.row.parentNameList }}</span>
-                        <span v-else>{{ scopeSlot.row.parentNameList ?? '-' }}</span>
+                        <span>{{ scopeSlot.row.parentNameList ?? '-' }}</span>
                     </template>
                     <template #options="scopeSlot">
                         <div class="btn-group btn-group-msg">
-                            <span @click="dataModelPage(scopeSlot.row)">模型</span>
+                            <span
+                                v-if="tableType === 'layer'"
+                                @click="dataModelPage(scopeSlot.row)"
+                            >模型</span>
+                            <span
+                                v-else
+                                @click="layerAreaView(scopeSlot.row)"
+                            >领域</span>
                             <el-dropdown trigger="click">
                                 <span class="click-show-more">更多</span>
                                 <template #dropdown>
                                     <el-dropdown-menu>
                                         <el-dropdown-item @click="editData(scopeSlot.row)">编辑</el-dropdown-item>
                                         <el-dropdown-item @click="deleteData(scopeSlot.row)">删除</el-dropdown-item>
-                                        <el-dropdown-item @click="layerAreaView(scopeSlot.row)">领域</el-dropdown-item>
+                                        <el-dropdown-item v-if="tableType === 'layer'" @click="layerAreaView(scopeSlot.row)">领域</el-dropdown-item>
                                     </el-dropdown-menu>
                                 </template>
                             </el-dropdown>
                         </div>
                     </template>
                 </BlockTable>
-                <el-button class="back-up" @click="showParentDetail" v-if="parentLayerId && tableType === 'layer'">
-                    返回上一分层
-                </el-button>
+                <div class="back-btn-group" v-if="parentLayerId && tableType === 'layer'">
+                    <el-button @click="backHomeLayer">返回首页分层</el-button>
+                    <el-button class="back-up" @click="showParentDetail">返回上一分层</el-button>
+                </div>
             </div>
         </LoadingPage>
         <AddModal ref="addModalRef" />
@@ -91,7 +98,7 @@ const keyword = ref('')
 const loading = ref(false)
 const networkError = ref(false)
 const addModalRef = ref<any>(null)
-const tableType = ref<string>('layer')
+const tableType = ref<string>('all')
 const parentLayerId = ref<string>('')
 const dataModelDetailRef = ref<any>(null)
 
@@ -179,7 +186,11 @@ function addData() {
 function editData(data: any) {
     addModalRef.value.showModal((data: any) => {
         return new Promise((resolve: any, reject: any) => {
-            UpdateDataLayerData(data).then((res: any) => {
+            const params = {
+                ...data,
+                parentLayerId: !data.parentLayerId ? null : data.parentLayerId
+            }
+            UpdateDataLayerData(params).then((res: any) => {
                 ElMessage.success(res.msg)
                 initData()
                 resolve()
@@ -257,6 +268,14 @@ function showParentDetail() {
     })
 }
 
+// 返回首页分层
+function backHomeLayer() {
+    parentLayerId.value = null
+    tableConfig.pagination.currentPage = 1
+    tableConfig.pagination.pageSize = 10
+    initData()
+}
+
 function handleSizeChange(e: number) {
     tableConfig.pagination.pageSize = e
     initData()
@@ -270,7 +289,7 @@ function handleCurrentChange(e: number) {
 onMounted(() => {
 
     if (route.query && (route.query.parentLayerId || route.query.tableType)) {
-        tableType.value = route.query.tableType ?? 'layer'
+        tableType.value = route.query.tableType ?? 'all'
         parentLayerId.value = route.query.parentLayerId ?? null
     }
 
@@ -305,10 +324,15 @@ onMounted(() => {
             .btn-group-msg {
                 justify-content: space-around;
             }
-            .back-up {
+            .back-btn-group {
                 position: absolute;
                 bottom: 22px;
                 left: 20px;
+                display: flex;
+                align-items: center;
+            }
+            .back-up {
+                margin-left: 10px;
             }
         }
     }

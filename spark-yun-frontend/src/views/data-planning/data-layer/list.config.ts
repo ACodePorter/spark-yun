@@ -46,13 +46,8 @@ export const colConfigs: colConfig[] = [
         customSlot: 'nameSlot'
     },
     {
-        prop: 'tableRule',
-        title: '表名规范',
-        minWidth: 125
-    },
-    {
         prop: 'parentNameList',
-        title: '父级分层',
+        title: '分层路径',
         minWidth: 140,
         customSlot: 'parentNameSlot'
     },

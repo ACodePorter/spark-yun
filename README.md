@@ -32,10 +32,6 @@
         <td><a href="https://zhiqingyun-demo.isxcode.com/tools/open/file/zhiqingyun.tar.gz">https://zhiqingyun-demo.isxcode.com/tools/open/file/zhiqingyun.tar.gz</a></td>
     </tr>
     <tr>
-        <td>许可证下载</td>
-        <td><a href="https://zhiqingyun-demo.isxcode.com/tools/open/file/license.lic">https://zhiqingyun-demo.isxcode.com/tools/open/file/license.lic</a></td>
-    </tr>
-    <tr>
         <td>友情链接</td>
         <td><a href="https://zhishuyun.isxcode.com">[至数云] - 超轻量级人工智能应用平台</a></td>
     </tr>
@@ -51,7 +47,7 @@
 
 ### 功能列表
 
-| 模块   | 功能                       |
+| 模块   | 全部功能[包含商业版]              |
 |:-----|:-------------------------|
 | 首页   | 系统监控、集群监控、实例监控           |
 | 资源管理 | 计算集群、数据源、驱动管理、资源中心       |
@@ -73,8 +69,8 @@
 
 - [快速体验](https://zhiqingyun.isxcode.com/zh/docs/zh/1/0)
 - [产品手册](https://zhiqingyun.isxcode.com/zh/docs/zh/2/0)
-- [开发手册](https://zhiqingyun.isxcode.com/zh/docs/zh/5/1)
-- [博客](https://ispong.isxcode.com/tags/spark/)
+- [开发手册](https://zhiqingyun.isxcode.com/zh/docs/zh/5/3)
+- [博客](https://ispong.isxcode.com)
 
 ### 快速部署
 
@@ -88,12 +84,13 @@ docker run -p 8080:8080 -d isxcode/zhiqingyun
 ### 源码构建
 
 ```bash
+# 系统环境: Mac或Linux
 # 安装包路径: /tmp/spark-yun/spark-yun-dist/build/distributions/zhiqingyun.tar.gz
 cd /tmp
 git clone https://github.com/isxcode/spark-yun.git
 docker run --rm \
   -v /tmp/spark-yun:/spark-yun \
-  -it registry.cn-shanghai.aliyuncs.com/isxcode/zhiqingyun-build:latest-amd64 \
+  -it isxcode/zhiqingyun-build \
   gradle package
 ```
 

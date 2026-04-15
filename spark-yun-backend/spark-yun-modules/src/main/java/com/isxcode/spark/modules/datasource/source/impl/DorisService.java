@@ -7,14 +7,12 @@ import com.isxcode.spark.api.datasource.constants.DatasourceType;
 import com.isxcode.spark.api.datasource.dto.ConnectInfo;
 import com.isxcode.spark.api.datasource.dto.QueryColumnDto;
 import com.isxcode.spark.api.datasource.dto.QueryTableDto;
-import com.isxcode.spark.api.model.ao.DataModelColumnAo;
 import com.isxcode.spark.api.work.res.GetDataSourceDataRes;
 import com.isxcode.spark.backend.api.base.exceptions.IsxAppException;
 import com.isxcode.spark.backend.api.base.properties.IsxAppProperties;
 import com.isxcode.spark.common.utils.aes.AesUtils;
 import com.isxcode.spark.modules.datasource.service.DatabaseDriverService;
 import com.isxcode.spark.modules.datasource.source.Datasource;
-import com.isxcode.spark.modules.model.entity.DataModelEntity;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.dbutils.QueryRunner;
 import org.apache.commons.dbutils.handlers.BeanListHandler;
@@ -85,12 +83,6 @@ public class DorisService extends Datasource {
             log.error(e.getMessage(), e);
             throw new IsxAppException(e.getMessage());
         }
-    }
-
-    @Override
-    public String generateDataModelSql(ConnectInfo connectInfo, List<DataModelColumnAo> modelColumnList,
-        DataModelEntity dataModelEntity) throws IsxAppException {
-        throw new RuntimeException("数据源暂不支持，请联系管理员");
     }
 
     @Override
@@ -179,7 +171,8 @@ public class DorisService extends Datasource {
     public String getCreateTableOptionalSuffix(List<ColumnMetaDto> fromColumnList) {
         // 查找第一个字段作为分布键
         String firstColumn = fromColumnList.isEmpty() ? "id" : fromColumnList.get(0).getName();
-        return "DISTRIBUTED BY HASH(" + firstColumn + ") BUCKETS 1";
+        return "DISTRIBUTED BY HASH(" + firstColumn + ") BUCKETS 1 PROPERTIES (\n" + "    \"replication_num\" = \"1\"\n"
+            + ")";
     }
 
     @Override

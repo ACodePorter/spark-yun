@@ -33,14 +33,18 @@
                         >{{ scopeSlot.row.name }}</span>
                     </template>
                     <template #layerNameSlot="scopeSlot">
-                        <span
-                            class="name-click"
-                            @click="showDataLayer(scopeSlot.row)"
-                        >{{ scopeSlot.row.layerName }}</span>
+                        <span>{{ scopeSlot.row.layerName }}</span>
                     </template>
                     <template #options="scopeSlot">
                         <div class="btn-group btn-group-msg">
-                            <span @click="showLog(scopeSlot.row)">日志</span>
+                            <span
+                                v-if="['INIT', 'FAIL', 'ERROR'].includes(scopeSlot.row.status)"
+                                @click="buildData(scopeSlot.row)"
+                            >构建</span>
+                            <span
+                                v-if="scopeSlot.row.status === 'SUCCESS'"
+                                @click="showMetadataDetail(scopeSlot.row)"
+                            >详情</span>
                             <el-dropdown trigger="click">
                                 <span class="click-show-more">更多</span>
                                 <template #dropdown>
@@ -48,8 +52,9 @@
                                         <el-dropdown-item @click="editData(scopeSlot.row)">编辑</el-dropdown-item>
                                         <el-dropdown-item @click="deleteData(scopeSlot.row)">删除</el-dropdown-item>
                                         <el-dropdown-item @click="resetData(scopeSlot.row)">重置</el-dropdown-item>
-                                        <el-dropdown-item @click="buildData(scopeSlot.row)">构建</el-dropdown-item>
+                                        <el-dropdown-item v-if="scopeSlot.row.status !== 'INIT'" @click="buildData(scopeSlot.row)">构建</el-dropdown-item>
                                         <el-dropdown-item @click="copyData(scopeSlot.row)">复制</el-dropdown-item>
+                                        <el-dropdown-item @click="showLog(scopeSlot.row)">日志</el-dropdown-item>
                                     </el-dropdown-menu>
                                 </template>
                             </el-dropdown>
@@ -72,7 +77,6 @@ import AddModal from './add-modal/index.vue'
 import CopyModal from './copy-modal/index.vue'
 
 import { BreadCrumbList, TableConfig } from './list.config'
-import { GetParentLayerNode } from '@/services/data-layer.service'
 import {
     GetDataModelList,
     GetDataModelTreeData,
@@ -240,27 +244,23 @@ function inputEvent(e: string) {
     }
 }
 
-function showDataLayer(data: any) {
-    GetParentLayerNode({
-        id: data.layerId
-    }).then((res: any) => {
-        router.push({
-            name: 'data-layer',
-            query: {
-                parentLayerId: res.data.parentLayerId ?? null
-            }
-        })
-    }).catch((error: any) => {
-        console.error('获取父级节点失败', error)
-    })
-}
-
 function showDetail(data: any) {
     router.push({
         name: 'model-field',
         query: {
             id: data.id,
             modelType: data.modelType
+        }
+    })
+}
+
+function showMetadataDetail(data: any) {
+    router.push({
+        name: 'metadata-management',
+        query: {
+            tableType: 'table',
+            datasourceId: data.datasourceId || '',
+            tableName: data.tableName || ''
         }
     })
 }
@@ -283,6 +283,10 @@ function handleCurrentChange(e: number) {
 onMounted(() => {
     tableConfig.pagination.currentPage = 1
     tableConfig.pagination.pageSize = 10
+    const routeSearchModelId = String(route.query.searchModelId || '')
+    if (routeSearchModelId) {
+        keyword.value = routeSearchModelId
+    }
     initData()
 })
 </script>

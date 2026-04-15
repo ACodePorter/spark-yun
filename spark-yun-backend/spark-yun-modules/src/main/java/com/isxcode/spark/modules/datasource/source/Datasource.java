@@ -5,7 +5,6 @@ import com.alibaba.fastjson2.TypeReference;
 import com.isxcode.spark.api.datasource.constants.ColumnType;
 import com.isxcode.spark.api.datasource.constants.DatasourceType;
 import com.isxcode.spark.api.datasource.dto.*;
-import com.isxcode.spark.api.model.ao.DataModelColumnAo;
 import com.isxcode.spark.api.work.res.GetDataSourceDataRes;
 import com.isxcode.spark.backend.api.base.exceptions.IsxAppException;
 import com.isxcode.spark.backend.api.base.exceptions.WorkRunException;
@@ -15,7 +14,6 @@ import com.isxcode.spark.common.utils.path.PathUtils;
 import com.isxcode.spark.modules.datasource.entity.DatabaseDriverEntity;
 import com.isxcode.spark.modules.datasource.service.DatabaseDriverService;
 import com.isxcode.spark.modules.datasource.service.DriverShim;
-import com.isxcode.spark.modules.model.entity.DataModelEntity;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.sf.jsqlparser.JSQLParserException;
@@ -56,9 +54,6 @@ public abstract class Datasource {
 
     public abstract List<QueryColumnDto> queryColumn(ConnectInfo connectInfo) throws IsxAppException;
 
-    public abstract String generateDataModelSql(ConnectInfo connectInfo, List<DataModelColumnAo> modelColumnList,
-        DataModelEntity dataModelEntity) throws IsxAppException;
-
     public abstract Long getTableTotalSize(ConnectInfo connectInfo) throws IsxAppException;
 
     public abstract Long getTableTotalRows(ConnectInfo connectInfo) throws IsxAppException;
@@ -82,6 +77,22 @@ public abstract class Datasource {
     public abstract String convertColumnType(ColumnMetaDto columnMeta, String columnCode);
 
     public abstract String convertToFlinkColumnType(String columnType);
+
+    public Integer parseColumnLength(String columnType) {
+        if (columnType == null || columnType.trim().isEmpty()) {
+            return null;
+        }
+        Pattern lengthPattern = Pattern.compile("(\\d+)");
+        Matcher matcher = lengthPattern.matcher(columnType);
+        if (matcher.find()) {
+            try {
+                return Integer.parseInt(matcher.group(1));
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        }
+        return null;
+    }
 
     public Connection getConnection(ConnectInfo connectInfo) throws IsxAppException {
 
