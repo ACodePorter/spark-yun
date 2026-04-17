@@ -93,7 +93,7 @@ public class HiveService extends Datasource {
             Boolean isPartitionColumn = false;
             while (resultSet.next()) {
                 // 跳过
-                if (resultSet.getString(1).isEmpty() || "# col_name            ".equals(resultSet.getString(1))) {
+                if (resultSet.getString(1).isEmpty() || "# col_name".trim().equals(resultSet.getString(1).trim())) {
                     continue;
                 }
                 if ("# Partition Information".equals(resultSet.getString(1))) {
@@ -214,18 +214,30 @@ public class HiveService extends Datasource {
     }
 
     @Override
-    public String getCreateTableFormat() {
-        return "CREATE TABLE %s (%s) %s %s";
+    public String generateCreateTableSuffix(List<ColumnMetaDto> fromColumnList) {
+        if (fromColumnList == null || fromColumnList.isEmpty()) {
+            return "STORED AS PARQUET";
+        }
+
+        List<String> partitionColumns =
+            fromColumnList.stream().filter(column -> Boolean.TRUE.equals(column.getIsPartitionColumn())).map(column -> {
+                String type = Strings.isBlank(column.getType()) ? "STRING" : column.getType().trim();
+                StringBuilder definition = new StringBuilder(column.getName()).append(" ").append(type);
+                if (Strings.isNotBlank(column.getColumnComment())) {
+                    definition.append(" COMMENT '").append(escapeHiveString(column.getColumnComment())).append("'");
+                }
+                return definition.toString();
+            }).collect(Collectors.toList());
+
+        if (partitionColumns.isEmpty()) {
+            return "STORED AS PARQUET";
+        }
+
+        return "PARTITIONED BY (\n\t" + String.join(",\n\t", partitionColumns) + "\n) STORED AS PARQUET";
     }
 
-    @Override
-    public String getCreateTableSuffix(List<ColumnMetaDto> fromColumnList) {
-        return "STORED AS PARQUET";
-    }
-
-    @Override
-    public String getCreateTableOptionalSuffix(List<ColumnMetaDto> fromColumnList) {
-        return "";
+    private String escapeHiveString(String value) {
+        return value.replace("'", "\\'");
     }
 
     @Override
