@@ -34,14 +34,7 @@ export const menuListData: Array<Menu> = [
         name: '数据源',
         icon: 'DataLine',
         authType: [ 'ROLE_TENANT_MEMBER', 'ROLE_TENANT_ADMIN' ],
-        childPage: []
-      },
-      {
-        code: 'driver-management',
-        name: '驱动上传',
-        icon: 'Cpu',
-        authType: [ 'ROLE_TENANT_MEMBER', 'ROLE_TENANT_ADMIN' ],
-        childPage: []
+        childPage: ['driver-management']
       },
       {
         code: 'file-center',
@@ -95,20 +88,6 @@ export const menuListData: Array<Menu> = [
         childPage: ['workflow-page']
       },
       {
-        code: 'custom-func',
-        name: '函数仓库',
-        icon: 'Mouse',
-        authType: [ 'ROLE_TENANT_MEMBER', 'ROLE_TENANT_ADMIN' ],
-        childPage: []
-      },
-      {
-        code: 'global-variables',
-        name: '全局变量',
-        icon: 'Memo',
-        authType: [ 'ROLE_TENANT_MEMBER', 'ROLE_TENANT_ADMIN' ],
-        childPage: []
-      },
-      {
         code: 'realtime-computing',
         name: '实时计算',
         icon: 'Iphone',
@@ -119,6 +98,20 @@ export const menuListData: Array<Menu> = [
         code: 'spark-container',
         name: '计算容器',
         icon: 'Box',
+        authType: [ 'ROLE_TENANT_MEMBER', 'ROLE_TENANT_ADMIN' ],
+        childPage: []
+      },
+      {
+        code: 'custom-func',
+        name: '函数仓库',
+        icon: 'Mouse',
+        authType: [ 'ROLE_TENANT_MEMBER', 'ROLE_TENANT_ADMIN' ],
+        childPage: []
+      },
+      {
+        code: 'global-variables',
+        name: '全局变量',
+        icon: 'Memo',
         authType: [ 'ROLE_TENANT_MEMBER', 'ROLE_TENANT_ADMIN' ],
         childPage: []
       },
@@ -164,14 +157,7 @@ export const menuListData: Array<Menu> = [
         name: '基线配置',
         icon: 'TakeawayBox',
         authType: [ 'ROLE_TENANT_MEMBER', 'ROLE_TENANT_ADMIN' ],
-        childPage: []
-      },
-      {
-        code: 'warning-schedule',
-        name: '告警实例',
-        icon: 'List',
-        authType: [ 'ROLE_TENANT_MEMBER', 'ROLE_TENANT_ADMIN' ],
-        childPage: []
+        childPage: ['warning-schedule']
       }
     ]
   },
@@ -193,14 +179,7 @@ export const menuListData: Array<Menu> = [
         name: '数据采集',
         icon: 'Collection',
         authType: ['ROLE_TENANT_MEMBER', 'ROLE_TENANT_ADMIN'],
-        childPage: []
-      },
-      {
-        code: 'acquisition-instance',
-        name: '采集实例',
-        icon: 'List',
-        authType: ['ROLE_TENANT_MEMBER', 'ROLE_TENANT_ADMIN'],
-        childPage: []
+        childPage: ['acquisition-instance']
       }
     ]
   },
@@ -211,32 +190,18 @@ export const menuListData: Array<Menu> = [
     authType: [ 'ROLE_TENANT_MEMBER', 'ROLE_TENANT_ADMIN' ],
     children: [
       {
-        code: 'report-components',
-        name: '数据卡片',
-        icon: 'Grid',
-        authType: [ 'ROLE_TENANT_MEMBER', 'ROLE_TENANT_ADMIN' ],
-        childPage: ['report-item']
-      },
-      {
         code: 'report-views',
         name: '数据大屏',
         icon: 'Histogram',
         authType: [ 'ROLE_TENANT_MEMBER', 'ROLE_TENANT_ADMIN' ],
-        childPage: ['report-views-detail']
-      },
-      {
-        code: 'access-rule',
-        name: '黑白名单',
-        icon: 'Lock',
-        authType: [ 'ROLE_TENANT_MEMBER', 'ROLE_TENANT_ADMIN' ],
-        childPage: []
+        childPage: ['report-views-detail', 'report-components', 'report-item']
       },
       {
         code: 'custom-api',
         name: '接口服务',
         icon: 'MessageBox',
         authType: [ 'ROLE_TENANT_MEMBER', 'ROLE_TENANT_ADMIN' ],
-        childPage: []
+        childPage: ['access-rule']
       },
       {
         code: 'custom-form',

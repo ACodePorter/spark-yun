@@ -13,7 +13,7 @@
                     </div>
                     <el-dropdown trigger="click">
                         <el-icon class="change-workflow">
-                            <Sort />
+                            <Expand />
                         </el-icon>
                         <template #dropdown>
                             <el-dropdown-menu style="max-height: 340px; overflow: auto; padding: 12px 8px;">
@@ -36,9 +36,9 @@
                         @input="inputEvent"
                         @keyup.enter="initData"
                     ></el-input>
-                    <el-button type="primary" circle @click="addData">
-                        <el-icon><Plus /></el-icon>
-                    </el-button>
+                    <el-icon class="add-work-icon" @click="addData">
+                        <Plus />
+                    </el-icon>
                 </div>
                 <el-scrollbar>
                     <div class="list-box">
@@ -170,6 +170,14 @@
                             </el-icon>
                             <span class="btn-text">定位</span>
                         </div>
+                        <div class="btn-box" @click="toggleOrderType">
+                            <el-icon>
+                                <Sort v-if="!orderType" />
+                                <SortDown v-else-if="orderType === 'desc'" />
+                                <SortUp v-else />
+                            </el-icon>
+                            <span class="btn-text">{{ orderTypeText }}</span>
+                        </div>
                         <div class="btn-box" @click="refreshFlowCanvas">
                             <el-icon>
                                 <Refresh />
@@ -195,21 +203,27 @@
                         v-if="showWorkItem && (workConfig.workType === 'SPARK_JAR' || workConfig.workType === 'FLINK_JAR')"
                         :workItemConfig="workConfig"
                         :workFlowData="workFlowData"
+                        :orderType="orderType"
                         @back="backToFlow"
                         @locationNode="locationNode"
+                        @sortWorkList="toggleOrderType"
                     ></spark-jar>
                     <WorkApi
                         v-if="showWorkItem && workConfig.workType === 'API'"
                         :workItemConfig="workConfig"
                         :workFlowData="workFlowData"
+                        :orderType="orderType"
                         @back="backToFlow"
                         @locationNode="locationNode"
+                        @sortWorkList="toggleOrderType"
                     ></WorkApi>
                     <ApiSync
                         v-if="showWorkItem && workConfig.workType === 'API_SYNC_JDBC'"
                         :workItemConfig="workConfig"
+                        :orderType="orderType"
                         @back="backToFlow"
                         @locationNode="locationNode"
+                        @sortWorkList="toggleOrderType"
                     ></ApiSync>
                     <WorkItem
                         v-if="
@@ -225,39 +239,51 @@
                         "
                         :workItemConfig="workConfig"
                         :workFlowData="workFlowData"
+                        :orderType="orderType"
                         @back="backToFlow"
                         @locationNode="locationNode"
+                        @sortWorkList="toggleOrderType"
                     ></WorkItem>
                     <data-sync
                         v-if="showWorkItem && workConfig.workType === 'DATA_SYNC_JDBC'"
                         :workItemConfig="workConfig"
+                        :orderType="orderType"
                         @back="backToFlow"
                         @locationNode="locationNode"
+                        @sortWorkList="toggleOrderType"
                     ></data-sync>
                     <DataSyncFlink
                         v-if="showWorkItem && workConfig.workType === 'DATA_SYNC_FLINK'"
                         :workItemConfig="workConfig"
+                        :orderType="orderType"
                         @back="backToFlow"
                         @locationNode="locationNode"
+                        @sortWorkList="toggleOrderType"
                     ></DataSyncFlink>
                     <ExcelImport
                         v-if="showWorkItem && workConfig.workType === 'EXCEL_SYNC_JDBC'"
                         :workItemConfig="workConfig"
+                        :orderType="orderType"
                         @back="backToFlow"
                         @locationNode="locationNode"
+                        @sortWorkList="toggleOrderType"
                     ></ExcelImport>
                     <DatabaseMigrate
                         v-if="showWorkItem && workConfig.workType === 'DB_MIGRATE'"
                         :workItemConfig="workConfig"
+                        :orderType="orderType"
                         @back="backToFlow"
                         @locationNode="locationNode"
+                        @sortWorkList="toggleOrderType"
                     ></DatabaseMigrate>
                     <!-- etl可视化作业 -->
                     <WorkEtl
                         v-if="showWorkItem && workConfig.workType === 'SPARK_ETL'"
                         :workItemConfig="workConfig"
+                        :orderType="orderType"
                         @back="backToFlow"
                         @locationNode="locationNode"
+                        @sortWorkList="toggleOrderType"
                     ></WorkEtl>
                 </template>
             </div>
@@ -290,7 +316,7 @@ import ApiSync from '../api-sync/index.vue'
 import sparkJar from '../spark-jar/index.vue'
 import DatabaseMigrate from '../database-migrate/index.vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Loading, MapLocation, Refresh, Sort, ZoomIn, ZoomOut } from '@element-plus/icons-vue'
+import { Expand, Loading, MapLocation, Refresh, ZoomIn, ZoomOut } from '@element-plus/icons-vue'
 import EllipsisTooltip from '@/components/ellipsis-tooltip/ellipsis-tooltip.vue'
 import {
     AddWorkflowDetailList,
@@ -340,6 +366,7 @@ const timer = ref()
 const runningStatus = ref(false)
 const copyModalRef = ref()
 const loading = ref<boolean>(false)
+const orderType = ref<'acs' | 'desc' | ''>('')
 
 const btnLoadingConfig = reactive({
     runningLoading: false,
@@ -369,14 +396,28 @@ const workTypeName = computed(() => {
     }
 })
 
+const orderTypeText = computed(() => {
+    if (orderType.value === 'desc') {
+        return '降序'
+    }
+    if (orderType.value === 'acs') {
+        return '升序'
+    }
+    return '排序'
+})
+
 function initData() {
     return new Promise((resolve) => {
-        GetWorkflowDetailList({
+        const params: any = {
             page: 0,
             pageSize: 99999,
             searchKeyWord: searchParam.value,
             workflowId: workFlowData.value.id
-        }).then((res: any) => {
+        }
+        if (orderType.value) {
+            params.orderType = orderType.value
+        }
+        GetWorkflowDetailList(params).then((res: any) => {
             workListItem.value = res.data.content
             resolve()
         }).catch(() => {
@@ -384,6 +425,17 @@ function initData() {
             resolve()
         })
     })
+}
+
+function toggleOrderType() {
+    if (!orderType.value) {
+        orderType.value = 'desc'
+    } else if (orderType.value === 'desc') {
+        orderType.value = 'acs'
+    } else {
+        orderType.value = ''
+    }
+    initData()
 }
 
 function getWorkFlows() {
@@ -998,34 +1050,44 @@ onUnmounted(() => {
 
             .change-workflow {
                 position: absolute;
-                right: 12px;
-                top: 16px;
+                right: 16px;
+                top: 50%;
+                transform: translateY(-50%);
+                display: inline-block;
+                white-space: nowrap;
+                writing-mode: horizontal-tb;
                 cursor: pointer;
+                color: getCssVar('color', 'primary');
+                font-size: 13px;
+                font-weight: 400;
+                line-height: 1;
                 &:hover {
-                    color: getCssVar('color', 'primary');
+                    color: getCssVar('color', 'primary', 'dark-2');
                 }
             }
         }
 
         .search-box {
-            padding: 4px 0;
+            padding: 4px 8px;
             box-sizing: border-box;
             display: flex;
-            justify-content: space-between;
             align-items: center;
+            gap: 4px;
             width: 100%;
             border-bottom: 1px solid getCssVar('border-color');
 
             .el-input {
-                margin-left: 8px;
-                width: 180px;
+                flex: 1;
+                min-width: 0;
             }
 
-            .el-button {
+            .add-work-icon {
                 margin-left: 4px;
                 margin-right: 4px;
-                // height: 32px;
                 width: 28px;
+                font-size: 18px;
+                color: getCssVar('color', 'primary');
+                cursor: pointer;
             }
         }
         .el-scrollbar {

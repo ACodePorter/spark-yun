@@ -50,23 +50,20 @@ export const colConfigs: colConfig[] = [
     prop: 'name',
     title: '租户名称',
     minWidth: 100,
+    customSlot: 'name',
     showOverflowTooltip: true
   },
   {
     prop: 'maxMemberNum',
     title: '成员',
-    minWidth: 100,
-    formatter: (data: any): string => {
-      return `${data.row.usedMemberNum} / ${data.row.maxMemberNum}`
-    }
+    minWidth: 180,
+    customSlot: 'memberProgress'
   },
   {
     prop: 'maxWorkflowNum',
     title: '工作流',
-    minWidth: 120,
-    formatter: (data: any): string => {
-      return `${data.row.usedWorkflowNum} / ${data.row.maxWorkflowNum}`
-    }
+    minWidth: 180,
+    customSlot: 'workflowProgress'
   },
   {
     prop: 'status',

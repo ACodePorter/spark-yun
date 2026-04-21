@@ -23,7 +23,9 @@
           v-model="formData.maxMemberNum"
           placeholder="请输入"
           :min="0"
-          :controls="false"
+          :max="100000"
+          :step="1"
+          controls-position="right"
         />
       </el-form-item>
       <el-form-item label="作业流数">
@@ -31,7 +33,9 @@
           v-model="formData.maxWorkflowNum"
           placeholder="请输入"
           :min="0"
-          :controls="false"
+          :max="100000"
+          :step="1"
+          controls-position="right"
         />
       </el-form-item>
       <el-form-item
@@ -46,7 +50,7 @@
           <el-option
             v-for="item in userList"
             :key="item.id"
-            :label="item.account"
+            :label="item.username"
             :value="item.id"
           />
         </el-select>
@@ -69,6 +73,7 @@
           type="datetimerange"
           format="YYYY-MM-DD HH:mm:ss"
           value-format="YYYY-MM-DD HH:mm:ss"
+          :unlink-panels="true"
           range-separator="~"
           start-placeholder="有效期开始时间"
           end-placeholder="有效期结束时间"
