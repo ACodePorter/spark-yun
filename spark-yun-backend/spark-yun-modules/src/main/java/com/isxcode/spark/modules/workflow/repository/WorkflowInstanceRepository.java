@@ -53,4 +53,6 @@ public interface WorkflowInstanceRepository extends JpaRepository<WorkflowInstan
 
     List<WorkflowInstanceEntity> findAllByExecStartDateTimeAfterAndLastModifiedDateTimeBefore(Date execStartDateTime,
         LocalDateTime execEndDateTime);
+
+    long countByStatus(String status);
 }

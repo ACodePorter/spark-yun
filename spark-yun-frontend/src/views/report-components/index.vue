@@ -2,7 +2,7 @@
     <Breadcrumb :bread-crumb-list="breadCrumbList" />
     <div class="zqy-seach-table report-component">
         <div class="zqy-table-top">
-            <el-button type="primary" @click="addData">添加卡片</el-button>
+            <el-button type="primary" @click="addData">新建卡片</el-button>
             <div class="zqy-seach">
                 <el-input
                     v-model="keyword"
@@ -198,7 +198,7 @@ function showDetail(data: any) {
     query: {
         id: data.id,
         reportViewId: route.query.reportViewId,
-        reportViewType: route.query.reportViewType
+        reportViewType: route.query.reportViewId ? 'edit' : route.query.reportViewType
     }
   })
 }
@@ -227,11 +227,11 @@ onMounted(() => {
                 code: 'report-views'
             },
             {
-                name: '大屏详情',
+                name: '大屏配置',
                 code: 'report-views-detail',
                 query: {
                     id: route.query.reportViewId,
-                    type: route.query.reportViewType || 'edit'
+                    type: 'edit'
                 }
             },
             {

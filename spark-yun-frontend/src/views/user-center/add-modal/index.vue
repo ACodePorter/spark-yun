@@ -8,22 +8,22 @@
       :rules="rules"
     >
       <el-form-item
-        label="用户名"
-        prop="username"
+        label="账号"
+        prop="account"
       >
         <el-input
-          v-model="formData.username"
+          v-model="formData.account"
           maxlength="100"
           placeholder="请输入"
           show-word-limit
         />
       </el-form-item>
       <el-form-item
-        label="账号"
-        prop="account"
+        label="用户名"
+        prop="username"
       >
         <el-input
-          v-model="formData.account"
+          v-model="formData.username"
           maxlength="100"
           placeholder="请输入"
           show-word-limit
@@ -84,8 +84,8 @@
           value-format="YYYY-MM-DD HH:mm:ss"
           :unlink-panels="true"
           range-separator="~"
-          start-placeholder="有效期开始时间"
-          end-placeholder="有效期结束时间"
+          start-placeholder="有效开始时间"
+          end-placeholder="有效结束时间"
           :editable="false"
         />
       </div>
@@ -103,7 +103,7 @@ const form = ref<FormInstance>()
 const callback = ref<any>()
 const renderSence = ref('new')
 const modelConfig = reactive({
-  title: '添加用户',
+  title: '新建用户',
   visible: false,
   width: '520px',
   okConfig: {
@@ -223,7 +223,7 @@ function showModal(cb: () => void, data: any): void {
     formData.email = ''
     formData.remark = ''
     formData.id = ''
-    modelConfig.title = '添加用户'
+    modelConfig.title = '新建用户'
     renderSence.value = 'new'
   }
   nextTick(() => {

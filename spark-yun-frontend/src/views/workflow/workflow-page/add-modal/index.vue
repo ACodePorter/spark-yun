@@ -161,7 +161,7 @@ const licenseEnabled = ref(true)
 const isEditMode = ref(false)
 
 const modelConfig = reactive({
-    title: '添加作业',
+    title: '新建作业',
     visible: false,
     width: '520px',
     okConfig: {
@@ -196,7 +196,6 @@ const limitedWorkTypeSet = new Set([
     'CURL',
     'EXE_JDBC',
     'FLINK_JAR',
-    'FLINK_SQL',
     'PYTHON',
     'QUERY_JDBC',
     'SPARK_JAR',
@@ -280,7 +279,7 @@ async function showModal(cb: () => void, data: any): Promise<void> {
         formData.enableHive = false
 
         formData.id = ''
-        modelConfig.title = '添加作业'
+        modelConfig.title = '新建作业'
         renderSense.value = 'new'
     }
     nextTick(() => {
