@@ -84,13 +84,6 @@
 docker run -p 8080:8080 -d isxcode/zhiqingyun
 ```
 
-### 相关文档
-
-- [快速体验](https://zhiqingyun.isxcode.com/zh/docs/1/0)
-- [产品手册](https://zhiqingyun.isxcode.com/zh/docs/2/0)
-- [开发手册](https://zhiqingyun.isxcode.com/zh/docs/5/3)
-- [博客](https://ispong.isxcode.com/tags/)
-
 ### 源码构建
 
 - Mac或Linux「terminal中执行」
@@ -116,6 +109,13 @@ docker run --rm ^
   -it isxcode/zhiqingyun-build ^
   gradle package
 ```
+
+### 相关文档
+
+- [快速体验](https://zhiqingyun.isxcode.com/zh/docs/1/0)
+- [产品手册](https://zhiqingyun.isxcode.com/zh/docs/2/0)
+- [开发手册](https://zhiqingyun.isxcode.com/zh/docs/5/3)
+- [博客](https://ispong.isxcode.com/tags/)
 
 ### 产品展示
 
